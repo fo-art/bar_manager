@@ -1,0 +1,47 @@
+.shell { min-height: 100vh; }
+.shell-main { padding-bottom: 76px; }
+.shell-side { display: none; }
+.shell-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.shell-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--muted);
+}
+.shell-item .ico { font-size: 20px; line-height: 1; }
+.shell-item.active { color: var(--green-dark); }
+.shell-brand { font-size: 18px; font-weight: 700; color: var(--green-dark); padding: 4px 12px 16px; }
+@media (min-width: 900px) {
+  .shell-bottom { display: none; }
+  .shell-main { padding-bottom: 0; margin-left: 220px; }
+  .shell-side {
+    display: block;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 220px;
+    padding: 20px 12px;
+    background: var(--card);
+    border-right: 1px solid var(--line);
+  }
+  .shell-side .shell-item { flex-direction: row; justify-content: flex-start; gap: 10px; padding: 10px 12px; border-radius: 10px; font-size: 15px; }
+  .shell-side .shell-item:hover { background: var(--hover); }
+  .shell-side .shell-item.active { background: var(--green-soft); }
+}
