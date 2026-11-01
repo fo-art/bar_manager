@@ -38,9 +38,9 @@ export default function Dashboard() {
     <div className="container">
       <div className="card">
         <h1>{t('hello')} {profile.full_name || profile.email}</h1>
-        <p>{t('role')} : {profile.role}</p>
+        <p>{t('role')} : <span className="badge badge-ok">{profile.role}</span></p>
         {account && <p>{t('account')} : {account.name} ({t('type')} {account.plan_type})</p>}
-        <button onClick={logout}>{t('logout')}</button>
+        <button className="btn-outline" onClick={logout}>{t('logout')}</button>
       </div>
     </div>
   )
