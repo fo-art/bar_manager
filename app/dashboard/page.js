@@ -40,6 +40,7 @@ export default function Dashboard() {
         <h1>{t('hello')} {profile.full_name || profile.email}</h1>
         <p>{t('role')} : <span className="badge badge-ok">{profile.role}</span></p>
         {account && <p>{t('account')} : {account.name} ({t('type')} {account.plan_type})</p>}
+        {profile.role === 'super_admin' && <button className="btn-primary" style={{ marginBottom: 12 }} onClick={() => router.push('/super')}>Espace Super Admin</button>}
         <button className="btn-outline" onClick={logout}>{t('logout')}</button>
       </div>
     </div>
