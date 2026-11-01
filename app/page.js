@@ -26,17 +26,21 @@ export default function Login() {
   }
 
   return (
-    <div className="container">
+    <div className="page-center">
       <div className="card">
         <h1>{t('appName')}</h1>
-        <p>{t('loginSubtitle')}</p>
-        {error && <div className="error">{error}</div>}
+        <p style={{ textAlign: 'center', color: 'var(--muted)', margin: '-8px 0 20px' }}>{t('loginSubtitle')}</p>
+        {error && <div className="error-msg">{error}</div>}
         <form onSubmit={handleLogin}>
-          <label>{t('email')}</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          <label>{t('password')}</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          <button type="submit" disabled={loading}>{loading ? t('loggingIn') : t('login')}</button>
+          <div className="field">
+            <label>{t('email')}</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </div>
+          <div className="field">
+            <label>{t('password')}</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </div>
+          <button type="submit" className="btn-primary" disabled={loading}>{loading ? t('loggingIn') : t('login')}</button>
         </form>
       </div>
     </div>
