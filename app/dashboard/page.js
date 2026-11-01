@@ -2,9 +2,11 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
+import { usePrefs } from '../components/Providers'
 
 export default function Dashboard() {
   const router = useRouter()
+  const { t } = usePrefs()
   const [profile, setProfile] = useState(null)
   const [account, setAccount] = useState(null)
 
@@ -30,15 +32,15 @@ export default function Dashboard() {
     router.push('/')
   }
 
-  if (!profile) return <div className="container">Chargement...</div>
+  if (!profile) return <div className="container">{t('loading')}</div>
 
   return (
     <div className="container">
       <div className="card">
-        <h1>Bonjour {profile.full_name || profile.email}</h1>
-        <p>Rôle : {profile.role}</p>
-        {account && <p>Compte : {account.name} (type {account.plan_type})</p>}
-        <button onClick={logout}>Déconnexion</button>
+        <h1>{t('hello')} {profile.full_name || profile.email}</h1>
+        <p>{t('role')} : {profile.role}</p>
+        {account && <p>{t('account')} : {account.name} ({t('type')} {account.plan_type})</p>}
+        <button onClick={logout}>{t('logout')}</button>
       </div>
     </div>
   )
