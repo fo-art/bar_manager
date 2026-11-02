@@ -7,6 +7,7 @@ import { usePrefs } from './Providers'
 const ITEMS = [
   { href: '/dashboard', icon: '🏠', fr: 'Accueil', en: 'Home' },
   { href: '/boissons', icon: '🍺', fr: 'Boissons', en: 'Drinks' },
+  { href: '/stock', icon: '📦', fr: 'Stock', en: 'Stock' },
 ]
 
 export default function AppShell({ children }) {
