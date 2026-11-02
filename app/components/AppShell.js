@@ -10,6 +10,7 @@ const ITEMS = [
   { href: '/caisse', icon: '🧾', fr: 'Caisse', en: 'Cash' },
   { href: '/boissons', icon: '🍺', fr: 'Boissons', en: 'Drinks' },
   { href: '/stock', icon: '📦', fr: 'Stock', en: 'Stock' },
+  { href: '/journal', icon: '📋', fr: 'Journal', en: 'Log' },
 ]
 
 export default function AppShell({ children }) {
@@ -18,7 +19,7 @@ export default function AppShell({ children }) {
 
   function items() {
     return ITEMS.map((i) => (
-      <Link key={i.href} href={i.href} className={'shell-item' + (pathname.startsWith(i.href) ? ' active' : '')}>
+      <Link key={i.href} href={i.href} style={{ flex: '1 0 72px' }} className={'shell-item' + (pathname.startsWith(i.href) ? ' active' : '')}>
         <span className="ico">{i.icon}</span>
         <span>{i[lang]}</span>
       </Link>
@@ -32,7 +33,7 @@ export default function AppShell({ children }) {
         {items()}
       </nav>
       <main className="shell-main">{children}</main>
-      <nav className="shell-bottom">{items()}</nav>
+      <nav className="shell-bottom" style={{ overflowX: 'auto' }}>{items()}</nav>
     </div>
   )
 }
