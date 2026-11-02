@@ -4,9 +4,22 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabaseClient'
 import { usePrefs } from './components/Providers'
 
+const M = {
+  fr: {
+    locked: 'Trop de tentatives. Compte bloqué pendant {n} minute(s).',
+    remaining: 'Mot de passe incorrect. Essais restants : {n}.',
+    network: 'Connexion impossible. Vérifiez votre réseau.',
+  },
+  en: {
+    locked: 'Too many attempts. Account locked for {n} minute(s).',
+    remaining: 'Incorrect password. Attempts left: {n}.',
+    network: 'Unable to connect. Check your network.',
+  },
+}
+
 export default function Login() {
   const router = useRouter()
-  const { t } = usePrefs()
+  const { t, lang } = usePrefs()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -16,14 +29,27 @@ export default function Login() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
-    if (authError) {
-      setError(t('loginError'))
-      setLoading(false)
-      return
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      const json = await res.json()
+      if (res.status === 429) {
+        setError(M[lang].locked.replace('{n}', json.minutes))
+      } else if (!res.ok) {
+        setError(json.remaining !== undefined && json.remaining <= 3 ? M[lang].remaining.replace('{n}', json.remaining) : t('loginError'))
+      } else {
+        await supabase.auth.setSession({ access_token: json.access_token, refresh_token: json.refresh_token })
+        await supabase.rpc('log_login')
+        router.push('/dashboard')
+        return
+      }
+    } catch (e) {
+      setError(M[lang].network)
     }
-    await supabase.rpc('log_login')
-    router.push('/dashboard')
+    setLoading(false)
   }
 
   return (
