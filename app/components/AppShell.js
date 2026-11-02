@@ -13,6 +13,7 @@ const ITEMS = [
   { href: '/boissons', icon: '🍺', fr: 'Boissons', en: 'Drinks', roles: ['admin', 'accountant'] },
   { href: '/stock', icon: '📦', fr: 'Stock', en: 'Stock', roles: ['admin', 'accountant'] },
   { href: '/depenses', icon: '💸', fr: 'Dépenses', en: 'Expenses', roles: ['admin', 'accountant'] },
+  { href: '/bilan', icon: '📊', fr: 'Bilan', en: 'Report', roles: ['admin', 'accountant'] },
   { href: '/journal', icon: '📋', fr: 'Journal', en: 'Log', roles: ['admin', 'accountant'] },
   { href: '/equipe', icon: '👥', fr: 'Équipe', en: 'Team', roles: ['admin'] },
 ]
