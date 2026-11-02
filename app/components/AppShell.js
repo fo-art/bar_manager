@@ -6,6 +6,7 @@ import { usePrefs } from './Providers'
 
 const ITEMS = [
   { href: '/dashboard', icon: '🏠', fr: 'Accueil', en: 'Home' },
+  { href: '/ventes', icon: '💰', fr: 'Ventes', en: 'Sales' },
   { href: '/boissons', icon: '🍺', fr: 'Boissons', en: 'Drinks' },
   { href: '/stock', icon: '📦', fr: 'Stock', en: 'Stock' },
 ]
