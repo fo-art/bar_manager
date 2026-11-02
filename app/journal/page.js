@@ -118,7 +118,11 @@ function since(p) {
 export default function Journal() {
   const router = useRouter()
   const { lang } = usePrefs()
-  const tr = (k) => L[lang][k]
+    const EXTRA = {
+    fr: { a_staff_created: 'Employé ajouté', a_staff_deactivated: 'Employé désactivé', a_staff_reactivated: 'Employé réactivé', a_expense_added: 'Dépense enregistrée', a_rebate_added: 'Ristourne fournisseur', a_finance_voided: 'Écriture annulée' },
+    en: { a_staff_created: 'Employee added', a_staff_deactivated: 'Employee deactivated', a_staff_reactivated: 'Employee reactivated', a_expense_added: 'Expense recorded', a_rebate_added: 'Supplier rebate', a_finance_voided: 'Entry voided' },
+  }
+  const tr = (k) => L[lang][k] || EXTRA[lang][k] || k
   const [profile, setProfile] = useState(null)
   const [locked, setLocked] = useState(false)
   const [users, setUsers] = useState([])
