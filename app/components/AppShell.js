@@ -12,6 +12,7 @@ const ITEMS = [
   { href: '/caisse', icon: '🧾', fr: 'Caisse', en: 'Cash', roles: ['admin', 'accountant', 'server'] },
   { href: '/boissons', icon: '🍺', fr: 'Boissons', en: 'Drinks', roles: ['admin', 'accountant'] },
   { href: '/stock', icon: '📦', fr: 'Stock', en: 'Stock', roles: ['admin', 'accountant'] },
+  { href: '/depenses', icon: '💸', fr: 'Dépenses', en: 'Expenses', roles: ['admin', 'accountant'] },
   { href: '/journal', icon: '📋', fr: 'Journal', en: 'Log', roles: ['admin', 'accountant'] },
   { href: '/equipe', icon: '👥', fr: 'Équipe', en: 'Team', roles: ['admin'] },
 ]
