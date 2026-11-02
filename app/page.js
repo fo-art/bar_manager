@@ -22,6 +22,7 @@ export default function Login() {
       setLoading(false)
       return
     }
+    await supabase.rpc('log_login')
     router.push('/dashboard')
   }
 
