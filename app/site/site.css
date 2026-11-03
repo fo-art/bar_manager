@@ -1,0 +1,23 @@
+.site { min-height: 100vh; display: flex; flex-direction: column; }
+.site-head { padding: 12px 16px 0; border-bottom: 1px solid var(--line); background: var(--card); }
+.site-brand { font-size: 20px; font-weight: 700; color: var(--green-dark); height: 40px; line-height: 40px; }
+.site-nav { display: flex; gap: 4px; overflow-x: auto; padding: 8px 0; }
+.site-nav a { flex: 0 0 auto; padding: 8px 12px; border-radius: 10px; color: var(--text); text-decoration: none; font-size: 14px; font-weight: 600; }
+.site-nav a.active { background: var(--green-soft); color: var(--green-dark); }
+.site-nav a.site-login { margin-left: auto; background: var(--green); color: #fff; }
+.site-main { flex: 1; width: 100%; max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+.site-foot { padding: 16px; text-align: center; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); }
+.site .card { max-width: none; }
+.site-hero { text-align: center; padding: 24px 0 8px; }
+.site-hero h1 { font-size: 30px; margin: 0 0 12px; color: var(--ink); }
+.site-hero p { font-size: 16px; color: var(--muted); margin: 0 auto 20px; max-width: 560px; }
+.site-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 20px; }
+.site-card h3 { margin: 0 0 6px; font-size: 16px; color: var(--ink); }
+.site-card p { margin: 0; color: var(--muted); font-size: 14px; }
+.site-cta { display: inline-block; padding: 13px 20px; border-radius: 10px; background: var(--green); color: #fff; font-weight: 600; text-decoration: none; }
+.site-cta.outline { background: var(--card); color: var(--text); border: 1px solid var(--input-line); }
+.site-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+@media (min-width: 700px) {
+  .site-grid { grid-template-columns: 1fr 1fr; }
+  .site-hero h1 { font-size: 38px; }
+}
