@@ -14,7 +14,7 @@ export default function Accueil() {
         <p>{t.subtitle}</p>
         <div className="site-btns">
           <a className="site-cta" href={'https://wa.me/' + CONTACT.whatsapp}>{t.cta}</a>
-          <Link className="site-cta outline" href="/">{T[lang].nav.login}</Link>
+          <Link className="site-cta outline" href="/connexion">{T[lang].nav.login}</Link>
         </div>
       </section>
       <div className="site-grid">
