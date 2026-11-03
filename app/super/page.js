@@ -143,7 +143,7 @@ export default function SuperAdmin() {
         <form onSubmit={create}>
           {field('Nom du gérant', 'full_name')}
           {field('E-mail de connexion', 'email', 'email')}
-          {field('Mot de passe (8 caractères minimum)', 'password')}
+                    {field('Mot de passe (8 caractères minimum)', 'password', 'password')}
           {field('Nom du compte (établissement)', 'account_name')}
           {field('Nom du premier bar', 'bar_name')}
           <div className="field">
