@@ -24,6 +24,17 @@ async function limitError(admin, accountId, role) {
   return null
 }
 
+async function pickBar(admin, accountId, wanted) {
+  const { data: bars } = await admin.from('bars').select('id').eq('account_id', accountId).eq('is_active', true)
+  const list = bars || []
+  if (wanted) {
+    if (!list.some((b) => b.id === wanted)) return { error: 'Bar introuvable' }
+    return { barId: wanted }
+  }
+  if (list.length > 1) return { error: 'Choisissez le bar du serveur' }
+  return { barId: list.length === 1 ? list[0].id : null }
+}
+
 async function loadStaff(admin, accountId, userId) {
   const { data } = await admin
     .from('profiles').select('id, role, is_active').eq('id', userId).eq('account_id', accountId).single()
@@ -46,10 +57,16 @@ export async function POST(request) {
     if (!ok) return fail('Accès verrouillé : abonnement terminé ou suspendu')
     const lim = await limitError(admin, profile.account_id, role)
     if (lim) return fail(lim)
+    let barId = null
+    if (role === 'server') {
+      const pick = await pickBar(admin, profile.account_id, body.bar_id)
+      if (pick.error) return fail(pick.error)
+      barId = pick.barId
+    }
     const created = await admin.auth.admin.createUser({ email, password, email_confirm: true })
     if (created.error) return fail(created.error.message)
     const ins = await admin.from('profiles').insert({
-      id: created.data.user.id, email, full_name, role, account_id: profile.account_id,
+      id: created.data.user.id, email, full_name, role, account_id: profile.account_id, bar_id: barId,
     })
     if (ins.error) {
       await admin.auth.admin.deleteUser(created.data.user.id)
@@ -77,6 +94,19 @@ export async function POST(request) {
     const { error } = await admin.from('profiles').update({ is_active: active }).eq('id', target.id)
     if (error) return fail(error.message)
     await admin.auth.admin.updateUserById(target.id, { ban_duration: active ? 'none' : '876000h' })
+    return NextResponse.json({ ok: true })
+  }
+
+  if (body.action === 'set_bar') {
+    if (target.role !== 'server') return fail('Seuls les serveurs peuvent être affectés à un bar')
+    let barId = null
+    if (body.bar_id) {
+      const pick = await pickBar(admin, profile.account_id, body.bar_id)
+      if (pick.error) return fail(pick.error)
+      barId = pick.barId
+    }
+    const { error } = await admin.from('profiles').update({ bar_id: barId }).eq('id', target.id)
+    if (error) return fail(error.message)
     return NextResponse.json({ ok: true })
   }
 
