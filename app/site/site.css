@@ -1,23 +1,32 @@
 .site { min-height: 100vh; display: flex; flex-direction: column; }
-.site-head { padding: 12px 16px 0; border-bottom: 1px solid var(--line); background: var(--card); }
-.site-brand { font-size: 20px; font-weight: 700; color: var(--green-dark); height: 40px; line-height: 40px; }
-.site-nav { display: flex; gap: 4px; overflow-x: auto; padding: 8px 0; }
-.site-nav a { flex: 0 0 auto; padding: 8px 12px; border-radius: 10px; color: var(--text); text-decoration: none; font-size: 14px; font-weight: 600; }
-.site-nav a.active { background: var(--green-soft); color: var(--green-dark); }
-.site-nav a.site-login { margin-left: auto; background: var(--green); color: #fff; }
-.site-main { flex: 1; width: 100%; max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+.site-head { position: sticky; top: 0; z-index: 50; background: var(--card); border-bottom: 1px solid var(--line); }
+.site-bar { max-width: 1000px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
+.site-brand { font-size: 20px; font-weight: 700; color: var(--green-dark); text-decoration: none; white-space: nowrap; }
+.site-nav { display: none; flex: 1; gap: 4px; justify-content: center; }
+.site-link { padding: 8px 12px; border-radius: 10px; color: var(--text); text-decoration: none; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.site-link.active { background: var(--green-soft); color: var(--green-dark); }
+.site-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.site-icon { min-width: 40px; min-height: 40px; padding: 0 10px; border: 1px solid var(--input-line); border-radius: 10px; background: var(--card); color: var(--text); font-size: 14px; font-weight: 600; }
+.site-login { padding: 10px 16px; border-radius: 10px; background: var(--green); color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; text-align: center; }
+.site-actions .site-login { display: none; }
+.site-drawer { display: flex; flex-direction: column; gap: 4px; padding: 8px 16px 16px; border-top: 1px solid var(--line); }
+.site-drawer .site-link { padding: 12px; }
+.site-main { flex: 1; width: 100%; max-width: 1000px; margin: 0 auto; padding: 24px 16px; }
 .site-foot { padding: 16px; text-align: center; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); }
 .site .card { max-width: none; }
 .site-hero { text-align: center; padding: 24px 0 8px; }
 .site-hero h1 { font-size: 30px; margin: 0 0 12px; color: var(--ink); }
 .site-hero p { font-size: 16px; color: var(--muted); margin: 0 auto 20px; max-width: 560px; }
-.site-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 20px; }
+.site-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 20px; }
+.site-grid.plans { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
 .site-card h3 { margin: 0 0 6px; font-size: 16px; color: var(--ink); }
 .site-card p { margin: 0; color: var(--muted); font-size: 14px; }
 .site-cta { display: inline-block; padding: 13px 20px; border-radius: 10px; background: var(--green); color: #fff; font-weight: 600; text-decoration: none; }
 .site-cta.outline { background: var(--card); color: var(--text); border: 1px solid var(--input-line); }
 .site-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-@media (min-width: 700px) {
-  .site-grid { grid-template-columns: 1fr 1fr; }
-  .site-hero h1 { font-size: 38px; }
+@media (min-width: 960px) {
+  .site-nav { display: flex; }
+  .site-burger, .site-drawer { display: none; }
+  .site-actions .site-login { display: inline-block; }
+  .site-hero h1 { font-size: 40px; }
 }
