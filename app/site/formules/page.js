@@ -12,7 +12,7 @@ export default function Formules() {
     <div>
       <h1 style={{ marginTop: 0 }}>{t.title}</h1>
       <p style={{ color: 'var(--muted)' }}>{t.trial}</p>
-      <div className="site-grid">
+      <div className="site-grid plans">
         {t.list.map(([name, points], i) => (
           <div className="card site-card" key={name}>
             <h3>{name}</h3>
