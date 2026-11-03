@@ -8,8 +8,8 @@ export default function PrefsBar() {
   const router = useRouter()
   const pathname = usePathname()
   const { lang, setLang, theme, setTheme } = usePrefs()
-  const isLogin = pathname === '/'
-  const isHome = pathname === '/' || pathname === '/dashboard'
+  const isPublic = pathname === '/' || pathname.startsWith('/site')
+  const isHome = isPublic || pathname === '/dashboard'
 
   function back() {
     if (window.history.length > 1) router.back()
@@ -27,7 +27,7 @@ export default function PrefsBar() {
       <div className="fb-right">
         <button onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}>{lang === 'fr' ? 'EN' : 'FR'}</button>
         <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>{theme === 'light' ? '🌙' : '☀️'}</button>
-        {!isLogin && <button onClick={logout}>{lang === 'fr' ? 'Déconnexion' : 'Log out'}</button>}
+        {!isPublic && <button onClick={logout}>{lang === 'fr' ? 'Déconnexion' : 'Log out'}</button>}
       </div>
     </>
   )
