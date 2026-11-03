@@ -202,7 +202,7 @@ export default function Equipe() {
             {field(tr('name'), 'full_name')}
             {field(tr('email'), 'email', 'email')}
             <p style={{ margin: '-8px 0 14px', color: 'var(--muted)', fontSize: 13 }}>{tr('emailHelp')}</p>
-            {field(tr('password'), 'password')}
+                        {field(tr('password'), 'password', 'password')}
             <div className="field">
               <label>{tr('role')}</label>
               <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
