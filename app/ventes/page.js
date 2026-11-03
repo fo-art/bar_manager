@@ -29,6 +29,7 @@ const L = {
     voidReason: 'Motif de l’annulation :',
     locked: 'Accès verrouillé : contactez l’administrateur.',
     clear: 'Vider le panier',
+    printTicket: 'Imprimer le ticket',
   },
   en: {
     title: 'Sales',
@@ -54,6 +55,7 @@ const L = {
     voidReason: 'Reason for voiding:',
     locked: 'Access locked: contact the administrator.',
     clear: 'Clear cart',
+    printTicket: 'Print receipt',
   },
 }
 
@@ -84,6 +86,7 @@ export default function Ventes() {
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [lastSale, setLastSale] = useState('')
 
   async function loadAll(id) {
     if (!id) return
@@ -151,6 +154,7 @@ export default function Ventes() {
     if (next === 0) delete copy[d.id]
     else copy[d.id] = next
     setCart(copy)
+    setLastSale('')
   }
 
   async function validate() {
@@ -158,7 +162,7 @@ export default function Ventes() {
     setErr('')
     setMsg('')
     const items = Object.entries(cart).map(([drink_id, qty]) => ({ drink_id, qty }))
-    const { error } = await supabase.rpc('create_sale', { p_bar: barId, p_items: items, p_method: method, p_customer: customer.trim() || null })
+    const { data: saleId, error } = await supabase.rpc('create_sale', { p_bar: barId, p_items: items, p_method: method, p_customer: customer.trim() || null })
     setBusy(false)
     if (error) {
       setErr(error.message)
@@ -166,6 +170,7 @@ export default function Ventes() {
     }
     setCart({})
     setCustomer('')
+    setLastSale(saleId)
     setMsg(tr('sold'))
     await loadAll(barId)
   }
@@ -197,6 +202,9 @@ export default function Ventes() {
         <h1>{tr('title')}</h1>
         {err && <div className="error-msg">{err}</div>}
         {msg && <div className="ok-msg">{msg}</div>}
+        {lastSale && (
+          <a className="btn-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', lineHeight: '20px', marginBottom: 12 }} href={'/ticket?id=' + lastSale + '&auto=1'} target="_blank" rel="noreferrer">{tr('printTicket')}</a>
+        )}
         {locked && <div className="error-msg">{tr('locked')}</div>}
         {bars.length > 1 && (
           <div className="field">
@@ -270,6 +278,7 @@ export default function Ventes() {
               {' · '}{s.profiles ? (s.profiles.full_name || s.profiles.email) : '-'}
             </div>
             <div style={{ fontSize: 13 }}>{(s.sale_items || []).map((i) => i.qty + ' × ' + (i.drinks ? i.drinks.name : '?')).join(', ')}</div>
+            <a className="btn-outline" style={{ display: 'inline-block', marginTop: 6, marginRight: 8, textDecoration: 'none', lineHeight: '24px' }} href={'/ticket?id=' + s.id} target="_blank" rel="noreferrer">🖨 {tr('printTicket')}</a>
             {isAdmin && !s.voided_at && <button className="btn-danger" style={{ marginTop: 6 }} disabled={busy} onClick={() => voidSale(s)}>{tr('voidBtn')}</button>}
             {s.voided_at && s.void_reason && <div style={{ fontSize: 13, color: 'var(--err)' }}>{s.void_reason}</div>}
           </div>
