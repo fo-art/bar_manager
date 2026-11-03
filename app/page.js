@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabaseClient'
 import { usePrefs } from './components/Providers'
@@ -9,11 +10,13 @@ const M = {
     locked: 'Trop de tentatives. Compte bloqué pendant {n} minute(s).',
     remaining: 'Mot de passe incorrect. Essais restants : {n}.',
     network: 'Connexion impossible. Vérifiez votre réseau.',
+    discover: 'Découvrir Bar Manager',
   },
   en: {
     locked: 'Too many attempts. Account locked for {n} minute(s).',
     remaining: 'Incorrect password. Attempts left: {n}.',
     network: 'Unable to connect. Check your network.',
+    discover: 'Discover Bar Manager',
   },
 }
 
@@ -69,6 +72,9 @@ export default function Login() {
           </div>
           <button type="submit" className="btn-primary" disabled={loading}>{loading ? t('loggingIn') : t('login')}</button>
         </form>
+        <p style={{ textAlign: 'center', margin: '16px 0 0' }}>
+          <Link href="/site" style={{ color: 'var(--green-dark)' }}>{M[lang].discover}</Link>
+        </p>
       </div>
     </div>
   )
