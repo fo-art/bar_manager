@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 import { usePrefs } from '../components/Providers'
+import Collapsible from '../components/Collapsible'
 import ReportPanel from '../components/ReportPanel'
 
 const L = {
@@ -228,8 +229,7 @@ export default function Caisse() {
               <button type="submit" className="btn-primary" disabled={busy || locked}>{tr('closeBtn')}</button>
             </form>
           </div>
-          <div className="card" style={{ marginTop: 16 }}>
-            <h1>{tr('history')}</h1>
+          <Collapsible title={tr('history')} count={closures.length}>
             {closures.length === 0 && <p style={{ margin: 0, color: 'var(--muted)' }}>{tr('noClosures')}</p>}
             {closures.map((c) => (
               <div key={c.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 14 }}>
@@ -242,7 +242,7 @@ export default function Caisse() {
                 {c.note && <div style={{ fontSize: 13 }}>{c.note}</div>}
               </div>
             ))}
-          </div>
+          </Collapsible>
         </>
       )}
 
