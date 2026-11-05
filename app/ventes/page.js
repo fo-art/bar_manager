@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 import { usePrefs } from '../components/Providers'
+import ReportPanel from '../components/ReportPanel'
 
 const L = {
   fr: {
