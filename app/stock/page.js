@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 import { usePrefs } from '../components/Providers'
+import ReportPanel from '../components/ReportPanel'
 
 const L = {
   fr: {
@@ -311,6 +312,8 @@ export default function Stock() {
           </div>
         ))}
       </div>
+
+      <ReportPanel key={barId} kind="stock" barId={barId} barName={(bars.find((b) => b.id === barId) || {}).name} />
     </div>
   )
 }
