@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 import { usePrefs } from '../components/Providers'
+import Collapsible from '../components/Collapsible'
 import ReportPanel from '../components/ReportPanel'
 
 const L = {
@@ -40,6 +41,7 @@ const L = {
     noChange: 'Aucune différence avec le stock actuel.',
     badQty: 'Quantité invalide (nombre entier requis).',
     current: 'Stock actuel',
+    drinksTitle: 'Boissons',
   },
   en: {
     title: 'Stock',
@@ -75,6 +77,7 @@ const L = {
     noChange: 'No difference from current stock.',
     badQty: 'Invalid quantity (whole number required).',
     current: 'Current stock',
+    drinksTitle: 'Drinks',
   },
 }
 
@@ -276,32 +279,32 @@ export default function Stock() {
         </div>
       )}
 
-      {list.length === 0 && <p style={{ textAlign: 'center', color: 'var(--muted)', marginTop: 24 }}>{tr('empty')}</p>}
-
-      {list.map((d) => {
-        const s = stock[d.id] || 0
-        const upc = d.units_per_case || 1
-        const state = s <= 0 ? 'out' : s <= d.alert_threshold ? 'low' : ''
-        return (
-          <div className="card" key={d.id} style={{ marginTop: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-              <strong>{d.name}</strong>
-              {state && <span className={'badge ' + (state === 'out' ? 'badge-err' : 'badge-warn')}>{tr(state)}</span>}
+      <Collapsible title={tr('drinksTitle')} count={list.length} forceOpen={q !== ''}>
+        {list.length === 0 && <p style={{ margin: 0, color: 'var(--muted)' }}>{tr('empty')}</p>}
+        {list.map((d) => {
+          const s = stock[d.id] || 0
+          const upc = d.units_per_case || 1
+          const state = s <= 0 ? 'out' : s <= d.alert_threshold ? 'low' : ''
+          return (
+            <div key={d.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                <strong>{d.name}</strong>
+                {state && <span className={'badge ' + (state === 'out' ? 'badge-err' : 'badge-warn')}>{tr(state)}</span>}
+              </div>
+              <p style={{ margin: '6px 0 10px', color: 'var(--muted)', fontSize: 14 }}>
+                {s} {tr('bottles')}{upc > 1 && s > 0 && ' · ' + Math.floor(s / upc) + ' ' + tr('cases') + ' + ' + (s % upc)}
+              </p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button className="btn-outline" disabled={busy || locked} onClick={() => openForm(d, 'in')}>{tr('btnIn')}</button>
+                <button className="btn-outline" disabled={busy || locked} onClick={() => openForm(d, 'out')}>{tr('btnOut')}</button>
+                <button className="btn-outline" disabled={busy || locked} onClick={() => openForm(d, 'count')}>{tr('btnCount')}</button>
+              </div>
             </div>
-            <p style={{ margin: '6px 0 12px', color: 'var(--muted)', fontSize: 14 }}>
-              {s} {tr('bottles')}{upc > 1 && s > 0 && ' · ' + Math.floor(s / upc) + ' ' + tr('cases') + ' + ' + (s % upc)}
-            </p>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button className="btn-outline" disabled={busy || locked} onClick={() => openForm(d, 'in')}>{tr('btnIn')}</button>
-              <button className="btn-outline" disabled={busy || locked} onClick={() => openForm(d, 'out')}>{tr('btnOut')}</button>
-              <button className="btn-outline" disabled={busy || locked} onClick={() => openForm(d, 'count')}>{tr('btnCount')}</button>
-            </div>
-          </div>
-        )
-      })}
+          )
+        })}
+      </Collapsible>
 
-      <div className="card" style={{ marginTop: 16 }}>
-        <h1>{tr('recent')}</h1>
+      <Collapsible title={tr('recent')} count={moves.length}>
         {moves.length === 0 && <p style={{ color: 'var(--muted)', margin: 0 }}>{tr('noMove')}</p>}
         {moves.map((m) => (
           <div key={m.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 14 }}>
@@ -311,7 +314,7 @@ export default function Stock() {
             </div>
           </div>
         ))}
-      </div>
+      </Collapsible>
 
       <ReportPanel key={barId} kind="stock" barId={barId} barName={(bars.find((b) => b.id === barId) || {}).name} />
     </div>
