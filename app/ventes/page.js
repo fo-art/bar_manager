@@ -278,13 +278,4 @@ export default function Ventes() {
               {new Date(s.created_at).toLocaleTimeString(lang === 'fr' ? 'fr-FR' : 'en-GB', { timeZone: 'Africa/Douala', hour: '2-digit', minute: '2-digit' })}
               {' · '}{s.profiles ? (s.profiles.full_name || s.profiles.email) : '-'}
             </div>
-            <div style={{ fontSize: 13 }}>{(s.sale_items || []).map((i) => i.qty + ' × ' + (i.drinks ? i.drinks.name : '?')).join(', ')}</div>
-            <a className="btn-outline" style={{ display: 'inline-block', marginTop: 6, marginRight: 8, textDecoration: 'none', lineHeight: '24px' }} href={'/ticket?id=' + s.id} target="_blank" rel="noreferrer">🖨 {tr('printTicket')}</a>
-            {isAdmin && !s.voided_at && <button className="btn-danger" style={{ marginTop: 6 }} disabled={busy} onClick={() => voidSale(s)}>{tr('voidBtn')}</button>}
-            {s.voided_at && s.void_reason && <div style={{ fontSize: 13, color: 'var(--err)' }}>{s.void_reason}</div>}
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+            <div style={{ fontSize: 13 }}>{(s.sale_items || []).map((i) => i.qty + ' × ' + (i.
