@@ -163,6 +163,10 @@ export default function Stock() {
     setMsg('')
     const buy = d.drink_costs ? (Array.isArray(d.drink_costs) ? d.drink_costs[0] : d.drink_costs) : null
     setForm({ drink: d, mode, kind: mode === 'in' ? 'purchase' : mode === 'out' ? 'loss' : 'adjustment', qty: '', unit: mode === 'in' ? 'case' : 'bottle', cost: buy ? buy.buy_price : '', note: '' })
+    setTimeout(() => {
+      const el = document.getElementById('inline-form')
+      if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }, 60)
   }
 
   async function save(e) {
@@ -210,6 +214,47 @@ export default function Stock() {
     await loadAll(barId)
   }
 
+  function renderForm() {
+    return (
+      <form onSubmit={save}>
+        {form.mode === 'out' && (
+          <div className="field">
+            <label>{tr('type')}</label>
+            <select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}>
+              <option value="loss">{tr('kind_loss')}</option>
+              <option value="gift">{tr('kind_gift')}</option>
+            </select>
+          </div>
+        )}
+        <div className="field">
+          <label>{form.mode === 'count' ? tr('counted') : tr('quantity')}</label>
+          <input type="number" min="0" value={form.qty} onChange={(e) => setForm({ ...form, qty: e.target.value })} required />
+        </div>
+        {form.mode !== 'count' && (
+          <div className="field">
+            <label>{tr('unit')}</label>
+            <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
+              <option value="case">{tr('cases')} ({form.drink.units_per_case})</option>
+              <option value="bottle">{tr('bottles')}</option>
+            </select>
+          </div>
+        )}
+        {form.mode === 'in' && (
+          <div className="field">
+            <label>{tr('costPer')}</label>
+            <input type="number" min="0" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} />
+          </div>
+        )}
+        <div className="field">
+          <label>{tr('note')}</label>
+          <input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+        </div>
+        <button type="submit" className="btn-primary" disabled={busy}>{tr('save')}</button>
+        <button type="button" className="btn-outline" style={{ width: '100%', marginTop: 8 }} onClick={() => setForm(null)}>{tr('cancel')}</button>
+      </form>
+    )
+  }
+
   if (!profile) return <div className="container">...</div>
 
   const term = q.toLowerCase()
@@ -237,49 +282,7 @@ export default function Stock() {
         </div>
       </div>
 
-      {form && (
-        <div className="card" style={{ marginTop: 16 }}>
-          <h1>{form.drink.name} · {tr('current')} : {stock[form.drink.id] || 0}</h1>
-          <form onSubmit={save}>
-            {form.mode === 'out' && (
-              <div className="field">
-                <label>{tr('type')}</label>
-                <select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}>
-                  <option value="loss">{tr('kind_loss')}</option>
-                  <option value="gift">{tr('kind_gift')}</option>
-                </select>
-              </div>
-            )}
-            <div className="field">
-              <label>{form.mode === 'count' ? tr('counted') : tr('quantity')}</label>
-              <input type="number" min="0" value={form.qty} onChange={(e) => setForm({ ...form, qty: e.target.value })} required />
-            </div>
-            {form.mode !== 'count' && (
-              <div className="field">
-                <label>{tr('unit')}</label>
-                <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
-                  <option value="case">{tr('cases')} ({form.drink.units_per_case})</option>
-                  <option value="bottle">{tr('bottles')}</option>
-                </select>
-              </div>
-            )}
-            {form.mode === 'in' && (
-              <div className="field">
-                <label>{tr('costPer')}</label>
-                <input type="number" min="0" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} />
-              </div>
-            )}
-            <div className="field">
-              <label>{tr('note')}</label>
-              <input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
-            </div>
-            <button type="submit" className="btn-primary" disabled={busy}>{tr('save')}</button>
-            <button type="button" className="btn-outline" style={{ width: '100%', marginTop: 8 }} onClick={() => setForm(null)}>{tr('cancel')}</button>
-          </form>
-        </div>
-      )}
-
-      <Collapsible title={tr('drinksTitle')} count={list.length} forceOpen={q !== ''}>
+      <Collapsible title={tr('drinksTitle')} count={list.length} forceOpen={q !== '' || !!form}>
         {list.length === 0 && <p style={{ margin: 0, color: 'var(--muted)' }}>{tr('empty')}</p>}
         {list.map((d) => {
           const s = stock[d.id] || 0
@@ -299,6 +302,12 @@ export default function Stock() {
                 <button className="btn-outline" disabled={busy || locked} onClick={() => openForm(d, 'out')}>{tr('btnOut')}</button>
                 <button className="btn-outline" disabled={busy || locked} onClick={() => openForm(d, 'count')}>{tr('btnCount')}</button>
               </div>
+              {form && form.drink.id === d.id && (
+                <div id="inline-form" style={{ marginTop: 12, padding: 12, border: '1px solid var(--line)', borderRadius: 12, background: 'var(--hover)' }}>
+                  <strong style={{ display: 'block', marginBottom: 10 }}>{d.name} · {tr('current')} : {s}</strong>
+                  {renderForm()}
+                </div>
+              )}
             </div>
           )
         })}
