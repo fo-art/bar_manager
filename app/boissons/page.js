@@ -197,6 +197,10 @@ export default function Boissons() {
     const buy = buyOf(d)
     setEditId(d.id)
     setForm({ name: d.name, category: d.category, buy_price: buy == null ? 0 : buy, sell_price: d.sell_price, units_per_case: d.units_per_case, alert_threshold: d.alert_threshold })
+    setTimeout(() => {
+      const el = document.getElementById('inline-form')
+      if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }, 60)
   }
 
   function patch(d, values, confirmKey) {
@@ -221,6 +225,26 @@ export default function Boissons() {
         <label>{label}</label>
         <input type={type} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} required />
       </div>
+    )
+  }
+
+  function renderForm() {
+    return (
+      <form onSubmit={save}>
+        {inp('name', tr('name'))}
+        <div className="field">
+          <label>{tr('category')}</label>
+          <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+            {CATS.map((c) => <option key={c} value={c}>{tr('cat_' + c)}</option>)}
+          </select>
+        </div>
+        {inp('buy_price', tr('buy'), 'number')}
+        {inp('sell_price', tr('sell'), 'number')}
+        {inp('units_per_case', tr('perCase'), 'number')}
+        {inp('alert_threshold', tr('threshold'), 'number')}
+        <button type="submit" className="btn-primary" disabled={busy}>{tr('save')}</button>
+        <button type="button" className="btn-outline" style={{ width: '100%', marginTop: 8 }} onClick={() => { setForm(null); setEditId(null) }}>{tr('cancel')}</button>
+      </form>
     )
   }
 
@@ -264,24 +288,10 @@ export default function Boissons() {
         )}
       </div>
 
-      {form && (
+      {form && !editId && (
         <div className="card" style={{ marginTop: 16 }}>
-          <h1>{editId ? tr('edit') : tr('add')}</h1>
-          <form onSubmit={save}>
-            {inp('name', tr('name'))}
-            <div className="field">
-              <label>{tr('category')}</label>
-              <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                {CATS.map((c) => <option key={c} value={c}>{tr('cat_' + c)}</option>)}
-              </select>
-            </div>
-            {inp('buy_price', tr('buy'), 'number')}
-            {inp('sell_price', tr('sell'), 'number')}
-            {inp('units_per_case', tr('perCase'), 'number')}
-            {inp('alert_threshold', tr('threshold'), 'number')}
-            <button type="submit" className="btn-primary" disabled={busy}>{tr('save')}</button>
-            <button type="button" className="btn-outline" style={{ width: '100%', marginTop: 8 }} onClick={() => { setForm(null); setEditId(null) }}>{tr('cancel')}</button>
-          </form>
+          <h1>{tr('add')}</h1>
+          {renderForm()}
         </div>
       )}
 
@@ -307,6 +317,12 @@ export default function Boissons() {
               {isAdmin && tab === 'trash' && <button className="btn-outline" disabled={busy} onClick={() => patch(d, { deleted_at: null })}>{tr('restore')}</button>}
               {isAdmin && tab === 'trash' && <button className="btn-danger" disabled={busy} onClick={() => removeForever(d)}>{tr('deleteForever')}</button>}
             </div>
+            {form && editId === d.id && (
+              <div id="inline-form" style={{ marginTop: 12, padding: 12, border: '1px solid var(--line)', borderRadius: 12, background: 'var(--hover)' }}>
+                <strong style={{ display: 'block', marginBottom: 10 }}>{tr('edit')}</strong>
+                {renderForm()}
+              </div>
+            )}
           </div>
         )
       })}
