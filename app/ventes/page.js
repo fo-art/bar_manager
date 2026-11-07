@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 import { usePrefs } from '../components/Providers'
+import Collapsible from '../components/Collapsible'
 import ReportPanel from '../components/ReportPanel'
 
 const L = {
@@ -22,7 +23,7 @@ const L = {
     validate: 'Valider la vente',
     sold: 'Vente enregistrée',
     outStock: 'Épuisé',
-    left: 'en stock',
+    left: 'disponibles',
     today: 'Ventes du jour',
     noSales: 'Aucune vente aujourd’hui',
     voided: 'Annulée',
@@ -31,6 +32,37 @@ const L = {
     locked: 'Accès verrouillé : contactez l’administrateur.',
     clear: 'Vider le panier',
     printTicket: 'Imprimer le ticket',
+    orders: 'Commandes en cours',
+    newOrder: '+ Nouvelle commande',
+    orderName: 'Nom de la commande (table ou client)',
+    orderNamePh: 'Ex. : Table 3, Jean',
+    createOrder: 'Créer la commande',
+    noOrders: 'Aucune commande en cours',
+    open: 'Ouvrir',
+    close: 'Fermer',
+    statusOpen: 'En cours',
+    statusValidated: 'Validée',
+    validateOrder: 'Valider la commande',
+    modify: 'Modifier',
+    billOrder: 'Facturer',
+    confirmBill: 'Confirmer la facture',
+    back: 'Retour',
+    cancel: 'Annuler',
+    cancelOrder: 'Annuler la commande',
+    cancelAsk: 'Motif de l’annulation de la commande :',
+    cancelConfirmEmpty: 'Annuler cette commande vide ?',
+    directSale: 'Vente directe (paiement immédiat)',
+    history: 'Historique de la commande',
+    ev_created: 'Commande créée',
+    ev_item: 'Modification',
+    ev_validated: 'Commande validée',
+    ev_reopened: 'Rouverte pour modification',
+    ev_billed: 'Facturée',
+    ev_cancelled: 'Commande annulée',
+    items: 'boisson(s)',
+    emptyOrder: 'Aucune boisson dans cette commande',
+    validatedHelp: 'Commande validée. Quand le client demande sa facture, appuyez sur Facturer. Pour ajouter ou changer une boisson, appuyez sur Modifier.',
+    billed: 'Commande facturée',
   },
   en: {
     title: 'Sales',
@@ -48,7 +80,7 @@ const L = {
     validate: 'Confirm sale',
     sold: 'Sale recorded',
     outStock: 'Sold out',
-    left: 'in stock',
+    left: 'available',
     today: 'Today’s sales',
     noSales: 'No sales today',
     voided: 'Voided',
@@ -57,6 +89,37 @@ const L = {
     locked: 'Access locked: contact the administrator.',
     clear: 'Clear cart',
     printTicket: 'Print receipt',
+    orders: 'Open orders',
+    newOrder: '+ New order',
+    orderName: 'Order name (table or customer)',
+    orderNamePh: 'E.g. Table 3, John',
+    createOrder: 'Create order',
+    noOrders: 'No open orders',
+    open: 'Open',
+    close: 'Close',
+    statusOpen: 'Open',
+    statusValidated: 'Validated',
+    validateOrder: 'Validate order',
+    modify: 'Edit',
+    billOrder: 'Bill',
+    confirmBill: 'Confirm the bill',
+    back: 'Back',
+    cancel: 'Cancel',
+    cancelOrder: 'Cancel order',
+    cancelAsk: 'Reason for cancelling the order:',
+    cancelConfirmEmpty: 'Cancel this empty order?',
+    directSale: 'Direct sale (immediate payment)',
+    history: 'Order history',
+    ev_created: 'Order created',
+    ev_item: 'Change',
+    ev_validated: 'Order validated',
+    ev_reopened: 'Reopened for editing',
+    ev_billed: 'Billed',
+    ev_cancelled: 'Order cancelled',
+    items: 'drink(s)',
+    emptyOrder: 'No drinks in this order',
+    validatedHelp: 'Order validated. When the customer asks for the bill, press Bill. To add or change a drink, press Edit.',
+    billed: 'Order billed',
   },
 }
 
@@ -68,6 +131,8 @@ function dayStart() {
   d.setUTCHours(0, 0, 0, 0)
   return new Date(d.getTime() - 3600000).toISOString()
 }
+
+const dt = (s, lang) => new Date(s).toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-GB', { timeZone: 'Africa/Douala', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 
 export default function Ventes() {
   const router = useRouter()
@@ -88,6 +153,27 @@ export default function Ventes() {
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   const [lastSale, setLastSale] = useState('')
+  const [orders, setOrders] = useState([])
+  const [reserved, setReserved] = useState({})
+  const [openId, setOpenId] = useState('')
+  const [newLabel, setNewLabel] = useState(null)
+  const [billing, setBilling] = useState(null)
+  const [events, setEvents] = useState([])
+
+  async function reloadOrders(id) {
+    if (!id) return
+    const { data: od } = await supabase
+      .from('orders')
+      .select('id, label, status, created_at, server_id, profiles(full_name, email), order_items(drink_id, qty)')
+      .eq('bar_id', id)
+      .in('status', ['open', 'validated'])
+      .order('created_at')
+    setOrders(od || [])
+    const { data: rs } = await supabase.rpc('bar_reserved', { p_bar: id })
+    const map = {}
+    for (const r of rs || []) map[r.drink_id] = r.reserved
+    setReserved(map)
+  }
 
   async function loadAll(id) {
     if (!id) return
@@ -114,6 +200,7 @@ export default function Ventes() {
       .gte('created_at', dayStart())
       .order('created_at', { ascending: false })
     setSales(sl || [])
+    await reloadOrders(id)
   }
 
   useEffect(() => {
@@ -141,15 +228,88 @@ export default function Ventes() {
     init()
   }, [router])
 
+  useEffect(() => {
+    if (!barId) return undefined
+    const timer = setInterval(() => reloadOrders(barId), 20000)
+    return () => clearInterval(timer)
+  }, [barId])
+
+  useEffect(() => {
+    if (!openId || !profile || profile.role === 'server') {
+      setEvents([])
+      return
+    }
+    supabase
+      .from('order_events')
+      .select('id, action, details, created_at, profiles(full_name, email)')
+      .eq('order_id', openId)
+      .order('created_at')
+      .then(({ data }) => setEvents(data || []))
+  }, [openId, orders, profile])
+
   function changeBar(id) {
     setBarId(id)
     setCart({})
+    setOpenId('')
+    setBilling(null)
     loadAll(id)
+  }
+
+  async function act(name, args, okKey) {
+    setBusy(true)
+    setErr('')
+    setMsg('')
+    const { data, error } = await supabase.rpc(name, args)
+    setBusy(false)
+    await reloadOrders(barId)
+    if (error) {
+      setErr(error.message)
+      return null
+    }
+    if (okKey) setMsg(tr(okKey))
+    return data === null || data === undefined ? true : data
+  }
+
+  async function createOrder(e) {
+    e.preventDefault()
+    const id = await act('order_create', { p_bar: barId, p_label: newLabel }, null)
+    if (id && id !== true) {
+      setNewLabel(null)
+      setOpenId(id)
+      setQ('')
+    }
+  }
+
+  function reopen(o) {
+    setBilling(null)
+    act('order_reopen', { p_order: o.id }, null)
+  }
+
+  async function cancelOrder(o) {
+    let reason = ''
+    if (o.order_items.length > 0) {
+      reason = window.prompt(tr('cancelAsk')) || ''
+      if (!reason.trim()) return
+    } else if (!window.confirm(tr('cancelConfirmEmpty'))) {
+      return
+    }
+    const ok = await act('order_cancel', { p_order: o.id, p_reason: reason }, null)
+    if (ok) setOpenId('')
+  }
+
+  async function billOrder(o) {
+    const saleId = await act('order_bill', { p_order: o.id, p_method: billing.method, p_customer: billing.customer.trim() || null }, 'billed')
+    if (saleId && saleId !== true) {
+      setLastSale(saleId)
+      setBilling(null)
+      setOpenId('')
+      await loadAll(barId)
+    }
   }
 
   function change(d, delta) {
     const next = (cart[d.id] || 0) + delta
-    const max = stock[d.id] || 0
+    const max = Math.max(0, (stock[d.id] || 0) - (reserved[d.id] || 0))
     if (next < 0 || next > max) return
     const copy = { ...cart }
     if (next === 0) delete copy[d.id]
@@ -187,15 +347,104 @@ export default function Ventes() {
     else await loadAll(barId)
   }
 
+  const orderTotal = (o) => o.order_items.reduce((sum, i) => { const d = drinks.find((x) => x.id === i.drink_id); return sum + (d ? d.sell_price * i.qty : 0) }, 0)
+
   if (!profile) return <div className="container">...</div>
 
   const isAdmin = profile.role === 'admin'
+  const isServer = profile.role === 'server'
   const term = q.toLowerCase()
   const list = drinks.filter((d) => d.name.toLowerCase().includes(term))
   const lines = drinks.filter((d) => cart[d.id])
   const total = lines.reduce((sum, d) => sum + d.sell_price * cart[d.id], 0)
   const validSales = sales.filter((s) => !s.voided_at)
   const dayTotal = validSales.reduce((sum, s) => sum + s.total, 0)
+
+  function renderOrder(o) {
+    const qtyOf = (id) => (o.order_items.find((i) => i.drink_id === id) || {}).qty || 0
+    const recap = o.order_items.map((i) => ({ qty: i.qty, d: drinks.find((x) => x.id === i.drink_id) })).filter((l) => l.d)
+    const isOpen = o.status === 'open'
+    const isBilling = billing && billing.id === o.id
+    return (
+      <div style={{ marginTop: 12, padding: 12, border: '1px solid var(--line)', borderRadius: 12, background: 'var(--hover)' }}>
+        {isOpen && (
+          <>
+            <div className="field">
+              <input placeholder={tr('search')} value={q} onChange={(e) => setQ(e.target.value)} />
+            </div>
+            {list.map((d) => {
+              const n = qtyOf(d.id)
+              const room = Math.max(0, (stock[d.id] || 0) - (reserved[d.id] || 0) + n)
+              return (
+                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
+                  <div style={{ flex: 1 }}>
+                    <strong>{d.name}</strong>
+                    <div style={{ fontSize: 13, color: 'var(--muted)' }}>{fmt(d.sell_price)} · {room > 0 ? room + ' ' + tr('left') : tr('outStock')}</div>
+                  </div>
+                  <button className="btn-outline" style={{ minWidth: 40, padding: '8px 0' }} disabled={busy || n === 0} onClick={() => act('order_set_item', { p_order: o.id, p_drink: d.id, p_qty: n - 1 }, null)}>-</button>
+                  <strong style={{ minWidth: 20, textAlign: 'center' }}>{n}</strong>
+                  <button className="btn-outline" style={{ minWidth: 40, padding: '8px 0' }} disabled={busy || locked || n >= room} onClick={() => act('order_set_item', { p_order: o.id, p_drink: d.id, p_qty: n + 1 }, null)}>+</button>
+                </div>
+              )
+            })}
+          </>
+        )}
+        {recap.length === 0 && <p style={{ margin: '8px 0', color: 'var(--muted)' }}>{tr('emptyOrder')}</p>}
+        {recap.map((l) => (
+          <div key={l.d.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+            <span>{l.qty} × {l.d.name}</span>
+            <span>{fmt(l.d.sell_price * l.qty)}</span>
+          </div>
+        ))}
+        <p style={{ fontSize: 18, fontWeight: 700, margin: '12px 0' }}>{tr('total')} : {fmt(orderTotal(o))}</p>
+        {isOpen && (
+          <>
+            <button className="btn-primary" disabled={busy || locked || recap.length === 0} onClick={() => act('order_validate', { p_order: o.id }, null)}>{tr('validateOrder')}</button>
+            {(isAdmin || recap.length === 0) && <button className="btn-danger" style={{ width: '100%', marginTop: 8 }} disabled={busy} onClick={() => cancelOrder(o)}>{tr('cancelOrder')}</button>}
+          </>
+        )}
+        {!isOpen && !isBilling && (
+          <>
+            <p style={{ margin: '0 0 8px', color: 'var(--muted)', fontSize: 13 }}>{tr('validatedHelp')}</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn-outline" style={{ flex: 1 }} disabled={busy} onClick={() => reopen(o)}>{tr('modify')}</button>
+              <button className="btn-primary" style={{ flex: 1, marginTop: 0 }} disabled={busy || locked} onClick={() => setBilling({ id: o.id, method: 'cash', customer: o.label })}>{tr('billOrder')}</button>
+            </div>
+            {isAdmin && <button className="btn-danger" style={{ width: '100%', marginTop: 8 }} disabled={busy} onClick={() => cancelOrder(o)}>{tr('cancelOrder')}</button>}
+          </>
+        )}
+        {isBilling && (
+          <>
+            <div className="field">
+              <label>{tr('payment')}</label>
+              <select value={billing.method} onChange={(e) => setBilling({ ...billing, method: e.target.value })}>
+                {METHODS.map((m) => <option key={m} value={m}>{tr('pay_' + m)}</option>)}
+              </select>
+            </div>
+            {billing.method === 'credit' && (
+              <div className="field">
+                <label>{tr('customer')}</label>
+                <input value={billing.customer} onChange={(e) => setBilling({ ...billing, customer: e.target.value })} />
+              </div>
+            )}
+            <button className="btn-primary" disabled={busy || locked} onClick={() => billOrder(o)}>{tr('confirmBill')}</button>
+            <button className="btn-outline" style={{ width: '100%', marginTop: 8 }} onClick={() => setBilling(null)}>{tr('back')}</button>
+          </>
+        )}
+        {!isServer && events.length > 0 && (
+          <Collapsible flat title={tr('history')} count={events.length}>
+            {events.map((ev) => (
+              <div key={ev.id} style={{ fontSize: 13, padding: '4px 0' }}>
+                {dt(ev.created_at, lang)} · {tr('ev_' + ev.action)}{ev.profiles ? ' · ' + (ev.profiles.full_name || ev.profiles.email) : ''}
+                {ev.action === 'item' && ' · ' + ev.details.drink + ' : ' + ev.details.from + ' → ' + ev.details.to}
+                {ev.action === 'cancelled' && ev.details.reason && ' · ' + ev.details.reason}
+              </div>
+            ))}
+          </Collapsible>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="container">
@@ -215,11 +464,44 @@ export default function Ventes() {
             </select>
           </div>
         )}
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <h1>{tr('orders')} · {orders.length}</h1>
+        {newLabel === null ? (
+          <button className="btn-primary" disabled={locked} onClick={() => setNewLabel('')}>{tr('newOrder')}</button>
+        ) : (
+          <form onSubmit={createOrder}>
+            <div className="field">
+              <label>{tr('orderName')}</label>
+              <input value={newLabel} placeholder={tr('orderNamePh')} maxLength={60} onChange={(e) => setNewLabel(e.target.value)} required />
+            </div>
+            <button type="submit" className="btn-primary" disabled={busy}>{tr('createOrder')}</button>
+            <button type="button" className="btn-outline" style={{ width: '100%', marginTop: 8 }} onClick={() => setNewLabel(null)}>{tr('cancel')}</button>
+          </form>
+        )}
+        {orders.length === 0 && <p style={{ margin: '12px 0 0', color: 'var(--muted)' }}>{tr('noOrders')}</p>}
+        {orders.map((o) => (
+          <div key={o.id} style={{ padding: '12px 0', borderBottom: '1px solid var(--line)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
+              <strong>{o.label}</strong>
+              <span className={'badge ' + (o.status === 'validated' ? 'badge-warn' : 'badge-ok')}>{tr(o.status === 'validated' ? 'statusValidated' : 'statusOpen')}</span>
+            </div>
+            <div style={{ color: 'var(--muted)', fontSize: 13 }}>
+              {o.order_items.reduce((s, i) => s + i.qty, 0)} {tr('items')} · {fmt(orderTotal(o))}{!isServer && o.profiles ? ' · ' + (o.profiles.full_name || o.profiles.email) : ''}
+            </div>
+            <button className="btn-outline" style={{ marginTop: 8 }} onClick={() => { setOpenId(openId === o.id ? '' : o.id); setBilling(null); setQ('') }}>{openId === o.id ? tr('close') : tr('open')}</button>
+            {openId === o.id && renderOrder(o)}
+          </div>
+        ))}
+      </div>
+
+      <Collapsible title={tr('directSale')}>
         <div className="field">
           <input placeholder={tr('search')} value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         {list.map((d) => {
-          const left = stock[d.id] || 0
+          const left = Math.max(0, (stock[d.id] || 0) - (reserved[d.id] || 0))
           const n = cart[d.id] || 0
           return (
             <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
@@ -233,11 +515,7 @@ export default function Ventes() {
             </div>
           )
         })}
-      </div>
-
-      <div className="card" style={{ marginTop: 16 }}>
-        <h1>{tr('cart')}</h1>
-        {lines.length === 0 && <p style={{ margin: 0, color: 'var(--muted)' }}>{tr('cartEmpty')}</p>}
+        {lines.length === 0 && <p style={{ margin: '12px 0 0', color: 'var(--muted)' }}>{tr('cartEmpty')}</p>}
         {lines.map((d) => (
           <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
             <span>{cart[d.id]} × {d.name}</span>
@@ -263,7 +541,7 @@ export default function Ventes() {
             <button className="btn-outline" style={{ width: '100%', marginTop: 8 }} onClick={() => setCart({})}>{tr('clear')}</button>
           </>
         )}
-      </div>
+      </Collapsible>
 
       <div className="card" style={{ marginTop: 16 }}>
         <h1>{tr('today')} · {fmt(dayTotal)}</h1>
