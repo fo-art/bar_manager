@@ -8,10 +8,14 @@ import { CONTACT } from '../../lib/config'
 const linkStyle = { display: 'block', textAlign: 'center', textDecoration: 'none', lineHeight: '20px', marginBottom: 8 }
 const BAR_KEY = 'bar_id'
 const MAX_BARS_ADMIN = 3
+const GREEN = '#16a34a'
+const tile = { flex: 1, padding: 12, border: '1px solid var(--line)', borderRadius: 12, background: 'var(--hover)', textAlign: 'center' }
 
 const L = {
   fr: {
+    plan: 'Formule',
     activeBar: 'Bar à gérer',
+    hint: 'Toutes les rubriques s’ouvrent sur le bar choisi.',
     addBar: 'Ajouter un bar ou une boutique',
     barName: 'Nom du nouveau bar',
     create: 'Créer',
@@ -26,7 +30,9 @@ const L = {
     generic: 'Erreur. Réessayez.',
   },
   en: {
+    plan: 'Plan',
     activeBar: 'Bar to manage',
+    hint: 'Every section opens on the selected bar.',
     addBar: 'Add a bar or shop',
     barName: 'New bar name',
     create: 'Create',
@@ -91,11 +97,6 @@ export default function Dashboard() {
     load()
   }, [router])
 
-  async function logout() {
-    await supabase.auth.signOut()
-    router.push('/')
-  }
-
   function changeBar(id) {
     setBarId(id)
     try { localStorage.setItem(BAR_KEY, id) } catch (e) {}
@@ -129,6 +130,7 @@ export default function Dashboard() {
       })
     : ''
   const activeBars = bars.filter((b) => b.is_active)
+  const current = activeBars.find((b) => b.id === barId)
   const isAdmin = profile.role === 'admin'
   const canAdd = isAdmin && !locked && access && Number(access.plan_type) === 4
   const atLimit = bars.length >= MAX_BARS_ADMIN
@@ -136,33 +138,42 @@ export default function Dashboard() {
 
   return (
     <div className="container">
-      <div className="card">
-        <h1>{t('hello')} {profile.full_name || profile.email}</h1>
-        <p>{t('role')} : <span className="badge badge-ok">{t('role_' + profile.role)}</span></p>
-        {profile.role === 'super_admin' && (
-          <button className="btn-primary" style={{ marginBottom: 12 }} onClick={() => router.push('/super')}>{t('superSpace')}</button>
+      <div className="card" style={{ background: 'linear-gradient(135deg, #14532d, ' + GREEN + ')', color: '#fff', border: 'none' }}>
+        <div style={{ opacity: 0.85, fontSize: 14 }}>{t('hello')}</div>
+        <div style={{ fontSize: 24, fontWeight: 700, margin: '2px 0 12px', wordBreak: 'break-word' }}>{profile.full_name || profile.email}</div>
+        <span style={{ display: 'inline-block', padding: '4px 12px', borderRadius: 999, fontSize: 13, background: 'rgba(255,255,255,0.2)' }}>{t('role_' + profile.role)}</span>
+        {current && !locked && (
+          <div style={{ marginTop: 14, fontSize: 15, opacity: 0.95 }}>{m.activeBar} : <strong>{current.name}</strong></div>
         )}
-        <button className="btn-outline" onClick={logout}>{t('logout')}</button>
+        {profile.role === 'super_admin' && (
+          <button className="btn-outline" style={{ marginTop: 14, background: '#fff', color: '#14532d', borderColor: '#fff' }} onClick={() => router.push('/super')}>{t('superSpace')}</button>
+        )}
       </div>
 
       {access && (
         <div className="card" style={{ marginTop: 16 }}>
-          <h1>{t('subscription')}</h1>
-          <p style={{ margin: '0 0 8px' }}>
-            {access.account_name} · {t('type')} {access.plan_type}{' '}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <strong style={{ fontSize: 18 }}>{t('subscription')}</strong>
             <span className={'badge ' + (locked ? 'badge-err' : soon ? 'badge-warn' : 'badge-ok')}>
               {suspended ? t('suspended') : locked ? t('expired') : t('active')}
             </span>
-          </p>
-          <p style={{ margin: '0 0 12px', color: 'var(--muted)' }}>
-            {t('expiresOn')} {date}{!locked && ' · ' + access.days_left + ' ' + t('daysLeft')}
-          </p>
-          {!locked && activeBars.length > 0 && (
-            <p style={{ margin: '0 0 12px' }}>{t('bars')} : {activeBars.map((b) => b.name).join(', ')}</p>
-          )}
-          {soon && <div className="error-msg">{t('lowDays')}</div>}
+          </div>
+          <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+            <div style={tile}>
+              <div style={{ fontSize: 22, fontWeight: 700 }}>{access.plan_type}</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)' }}>{m.plan}</div>
+            </div>
+            {!locked && (
+              <div style={tile}>
+                <div style={{ fontSize: 22, fontWeight: 700 }}>{access.days_left}</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('daysLeft')}</div>
+              </div>
+            )}
+          </div>
+          <p style={{ margin: '12px 0 0', color: 'var(--muted)', fontSize: 14 }}>{t('expiresOn')} {date}</p>
+          {soon && <div className="error-msg" style={{ marginTop: 12 }}>{t('lowDays')}</div>}
           {locked && (
-            <div className="error-msg">
+            <div className="error-msg" style={{ marginTop: 12 }}>
               <strong>{t('lockedTitle')}</strong><br />
               {suspended ? t('lockedSuspended') : t('lockedExpired')}
             </div>
@@ -178,27 +189,39 @@ export default function Dashboard() {
 
       {showBarCard && (
         <div className="card" style={{ marginTop: 16 }}>
-          <h1>{m.activeBar}</h1>
+          <strong style={{ fontSize: 18 }}>{m.activeBar}</strong>
           {activeBars.length > 1 && (
-            <div className="field">
-              <select value={barId} onChange={(e) => changeBar(e.target.value)}>
-                {activeBars.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-            </div>
+            <>
+              <p style={{ margin: '6px 0 12px', color: 'var(--muted)', fontSize: 14 }}>{m.hint}</p>
+              {activeBars.map((b) => {
+                const on = b.id === barId
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => changeBar(b.id)}
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', padding: '14px 16px', marginBottom: 8, borderRadius: 12, cursor: 'pointer', fontSize: 16, color: 'inherit', border: on ? '2px solid ' + GREEN : '1px solid var(--line)', background: on ? 'rgba(22,163,74,0.12)' : 'transparent' }}
+                  >
+                    <span>{b.name}</span>
+                    {on && <span style={{ color: GREEN, fontWeight: 700 }}>✓</span>}
+                  </button>
+                )
+              })}
+            </>
           )}
           {msg && <div className="ok-msg">{msg}</div>}
           {err && <div className="error-msg">{err}</div>}
           {canAdd && !adding && !atLimit && (
-            <button className="btn-outline" onClick={() => { setAdding(true); setMsg(''); setErr('') }}>{m.addBar}</button>
+            <button className="btn-outline" style={{ marginTop: 4 }} onClick={() => { setAdding(true); setMsg(''); setErr('') }}>{m.addBar}</button>
           )}
           {canAdd && atLimit && (
             <>
-              <p style={{ margin: '0 0 8px', color: 'var(--muted)' }}>{m.limit}</p>
+              <p style={{ margin: '4px 0 8px', color: 'var(--muted)', fontSize: 14 }}>{m.limit}</p>
               <a className="btn-outline" style={linkStyle} href={'https://wa.me/' + CONTACT.whatsapp}>{t('contactWhatsapp')}</a>
             </>
           )}
           {canAdd && adding && (
-            <form onSubmit={addBar}>
+            <form onSubmit={addBar} style={{ marginTop: 8 }}>
               <div className="field">
                 <label>{m.barName}</label>
                 <input value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={80} required />
