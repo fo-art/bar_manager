@@ -5,6 +5,8 @@ import { supabase } from '../../lib/supabaseClient'
 import { usePrefs } from '../components/Providers'
 import Collapsible from '../components/Collapsible'
 import ReportPanel from '../components/ReportPanel'
+import AskBox from '../components/askbox'
+import { chooseBar } from '../../lib/activebar'
 
 const L = {
   fr: {
@@ -158,6 +160,7 @@ export default function Ventes() {
   const [openId, setOpenId] = useState('')
   const [newLabel, setNewLabel] = useState(null)
   const [billing, setBilling] = useState(null)
+  const [ask, setAsk] = useState(null)
   const [events, setEvents] = useState([])
 
   async function reloadOrders(id) {
@@ -221,8 +224,9 @@ export default function Ventes() {
       const { data: b } = await supabase.from('bars').select('id, name').eq('is_active', true).order('created_at')
       setBars(b || [])
       if (b && b.length) {
-        setBarId(b[0].id)
-        loadAll(b[0].id)
+        const id = chooseBar(b)
+        setBarId(id)
+        loadAll(id)
       }
     }
     init()
@@ -246,14 +250,6 @@ export default function Ventes() {
       .order('created_at')
       .then(({ data }) => setEvents(data || []))
   }, [openId, orders, profile])
-
-  function changeBar(id) {
-    setBarId(id)
-    setCart({})
-    setOpenId('')
-    setBilling(null)
-    loadAll(id)
-  }
 
   async function act(name, args, okKey) {
     setBusy(true)
@@ -285,16 +281,19 @@ export default function Ventes() {
     act('order_reopen', { p_order: o.id }, null)
   }
 
-  async function cancelOrder(o) {
-    let reason = ''
-    if (o.order_items.length > 0) {
-      reason = window.prompt(tr('cancelAsk')) || ''
-      if (!reason.trim()) return
-    } else if (!window.confirm(tr('cancelConfirmEmpty'))) {
-      return
-    }
+  async function doCancelOrder(o, reason) {
+    setAsk(null)
     const ok = await act('order_cancel', { p_order: o.id, p_reason: reason }, null)
     if (ok) setOpenId('')
+  }
+
+  function cancelOrder(o) {
+    if (o.order_items.length > 0) {
+      setAsk({ kind: 'order', id: o.id })
+      return
+    }
+    if (!window.confirm(tr('cancelConfirmEmpty'))) return
+    doCancelOrder(o, '')
   }
 
   async function billOrder(o) {
@@ -336,15 +335,18 @@ export default function Ventes() {
     await loadAll(barId)
   }
 
-  async function voidSale(s) {
-    const reason = window.prompt(tr('voidReason'))
-    if (!reason || !reason.trim()) return
+  async function voidSale(s, reason) {
     setBusy(true)
     setErr('')
     const { error } = await supabase.rpc('void_sale', { p_sale: s.id, p_reason: reason })
     setBusy(false)
-    if (error) setErr(error.message)
-    else await loadAll(barId)
+    setAsk(null)
+    if (error) {
+      setErr(error.message)
+    } else {
+      if (lastSale === s.id) setLastSale('')
+      await loadAll(barId)
+    }
   }
 
   const orderTotal = (o) => o.order_items.reduce((sum, i) => { const d = drinks.find((x) => x.id === i.drink_id); return sum + (d ? d.sell_price * i.qty : 0) }, 0)
@@ -431,6 +433,9 @@ export default function Ventes() {
             <button className="btn-outline" style={{ width: '100%', marginTop: 8 }} onClick={() => setBilling(null)}>{tr('back')}</button>
           </>
         )}
+        {ask && ask.kind === 'order' && ask.id === o.id && (
+          <AskBox label={tr('cancelAsk')} submitText={tr('cancelOrder')} cancelText={tr('back')} busy={busy} onSubmit={(r) => doCancelOrder(o, r)} onCancel={() => setAsk(null)} />
+        )}
         {!isServer && events.length > 0 && (
           <Collapsible flat title={tr('history')} count={events.length}>
             {events.map((ev) => (
@@ -457,12 +462,7 @@ export default function Ventes() {
         )}
         {locked && <div className="error-msg">{tr('locked')}</div>}
         {bars.length > 1 && (
-          <div className="field">
-            <label>{tr('bar')}</label>
-            <select value={barId} onChange={(e) => changeBar(e.target.value)}>
-              {bars.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-          </div>
+          <p style={{ margin: '0 0 12px', color: 'var(--muted)' }}>{tr('bar')} : <strong>{(bars.find((b) => b.id === barId) || {}).name}</strong></p>
         )}
       </div>
 
@@ -557,8 +557,13 @@ export default function Ventes() {
               {' · '}{s.profiles ? (s.profiles.full_name || s.profiles.email) : '-'}
             </div>
             <div style={{ fontSize: 13 }}>{(s.sale_items || []).map((i) => i.qty + ' × ' + (i.drinks ? i.drinks.name : '?')).join(', ')}</div>
-            <a className="btn-outline" style={{ display: 'inline-block', marginTop: 6, marginRight: 8, textDecoration: 'none', lineHeight: '24px' }} href={'/ticket?id=' + s.id} target="_blank" rel="noreferrer">🖨 {tr('printTicket')}</a>
-            {isAdmin && !s.voided_at && <button className="btn-danger" style={{ marginTop: 6 }} disabled={busy} onClick={() => voidSale(s)}>{tr('voidBtn')}</button>}
+            {!s.voided_at && (
+              <a className="btn-outline" style={{ display: 'inline-block', marginTop: 6, marginRight: 8, textDecoration: 'none', lineHeight: '24px' }} href={'/ticket?id=' + s.id} target="_blank" rel="noreferrer">🖨 {tr('printTicket')}</a>
+            )}
+            {isAdmin && !s.voided_at && !(ask && ask.kind === 'sale' && ask.id === s.id) && <button className="btn-danger" style={{ marginTop: 6 }} disabled={busy} onClick={() => setAsk({ kind: 'sale', id: s.id })}>{tr('voidBtn')}</button>}
+            {ask && ask.kind === 'sale' && ask.id === s.id && (
+              <AskBox label={tr('voidReason')} submitText={tr('voidBtn')} cancelText={tr('back')} busy={busy} onSubmit={(r) => voidSale(s, r)} onCancel={() => setAsk(null)} />
+            )}
             {s.voided_at && s.void_reason && <div style={{ fontSize: 13, color: 'var(--err)' }}>{s.void_reason}</div>}
           </div>
         ))}
