@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabaseClient'
 import { usePrefs } from '../components/Providers'
 import Collapsible from '../components/Collapsible'
 import ReportPanel from '../components/ReportPanel'
+import { chooseBar } from '../../lib/activebar'
 
 const L = {
   fr: {
@@ -146,17 +147,13 @@ export default function Stock() {
       const { data: b } = await supabase.from('bars').select('id, name').eq('is_active', true).order('created_at')
       setBars(b || [])
       if (b && b.length) {
-        setBarId(b[0].id)
-        loadAll(b[0].id)
+        const id = chooseBar(b)
+        setBarId(id)
+        loadAll(id)
       }
     }
     init()
   }, [router])
-
-  function changeBar(id) {
-    setBarId(id)
-    loadAll(id)
-  }
 
   function openForm(d, mode) {
     setErr('')
@@ -270,12 +267,7 @@ export default function Stock() {
         {locked && <div className="error-msg">{tr('locked')}</div>}
         {lowCount > 0 && <div className="error-msg">{lowCount} {tr('restock')}</div>}
         {bars.length > 1 && (
-          <div className="field">
-            <label>{tr('bar')}</label>
-            <select value={barId} onChange={(e) => changeBar(e.target.value)}>
-              {bars.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-          </div>
+          <p style={{ margin: '0 0 12px', color: 'var(--muted)' }}>{tr('bar')} : <strong>{(bars.find((b) => b.id === barId) || {}).name}</strong></p>
         )}
         <div className="field">
           <input placeholder={tr('search')} value={q} onChange={(e) => setQ(e.target.value)} />
