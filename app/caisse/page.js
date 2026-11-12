@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabaseClient'
 import { usePrefs } from '../components/Providers'
 import Collapsible from '../components/Collapsible'
 import ReportPanel from '../components/ReportPanel'
+import { chooseBar } from '../../lib/activebar'
 
 const L = {
   fr: {
@@ -131,17 +132,13 @@ export default function Caisse() {
       const { data: b } = await supabase.from('bars').select('id, name').eq('is_active', true).order('created_at')
       setBars(b || [])
       if (b && b.length) {
-        setBarId(b[0].id)
-        loadAll(b[0].id)
+        const id = chooseBar(b)
+        setBarId(id)
+        loadAll(id)
       }
     }
     init()
   }, [router])
-
-  function changeBar(id) {
-    setBarId(id)
-    loadAll(id)
-  }
 
   async function closeCash(e) {
     e.preventDefault()
@@ -200,12 +197,7 @@ export default function Caisse() {
         {msg && <div className="ok-msg">{msg}</div>}
         {locked && <div className="error-msg">{tr('locked')}</div>}
         {bars.length > 1 && (
-          <div className="field">
-            <label>{tr('bar')}</label>
-            <select value={barId} onChange={(e) => changeBar(e.target.value)}>
-              {bars.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-          </div>
+          <p style={{ margin: '0 0 12px', color: 'var(--muted)' }}>{tr('bar')} : <strong>{(bars.find((b) => b.id === barId) || {}).name}</strong></p>
         )}
         <div style={{ display: 'flex', gap: 8 }}>
           <button className={tab === 'close' ? 'btn-primary' : 'btn-outline'} style={{ flex: 1, marginTop: 0, padding: '8px 4px' }} onClick={() => setTab('close')}>{tr('tabClose')}</button>
