@@ -58,6 +58,7 @@ const CSS = `
   .no-print, .fb-back, .fb-right { display: none !important; }
   .ticket-wrap { max-width: none; padding: 0; }
   .ticket { border: 0; padding: 0; }
+  .void-ticket { display: none !important; }
 }
 `
 
@@ -90,7 +91,7 @@ export default function Ticket() {
       setSale(data)
       const url = window.location.origin + '/verification?c=' + data.ticket_code
       setQr(await QRCode.toDataURL(url, { margin: 1, width: 280 }))
-      if (params.get('auto') === '1') setTimeout(() => window.print(), 600)
+      if (params.get('auto') === '1' && !data.voided_at) setTimeout(() => window.print(), 600)
     }
     load()
   }, [])
@@ -106,7 +107,7 @@ export default function Ticket() {
   return (
     <div className="ticket-wrap">
       <style>{CSS}</style>
-      <div className="ticket">
+      <div className={'ticket' + (sale.voided_at ? ' void-ticket' : '')}>
         <div className="t-center t-big">{sale.bars ? sale.bars.name : ''}</div>
         <div className="t-center">{tr('title')}</div>
         {sale.voided_at && <div className="t-void">{tr('voided')}</div>}
@@ -134,7 +135,7 @@ export default function Ticket() {
         <div className="t-center">{tr('thanks')}</div>
       </div>
       <div className="no-print t-actions">
-        <button className="btn-primary" onClick={() => window.print()}>{tr('print')}</button>
+        {!sale.voided_at && <button className="btn-primary" onClick={() => window.print()}>{tr('print')}</button>}
         <button className="btn-outline" onClick={() => window.history.back()}>{tr('back')}</button>
       </div>
     </div>
