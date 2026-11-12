@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 import { usePrefs } from '../components/Providers'
+import { chooseBar } from '../../lib/activebar'
 
 const L = {
   fr: {
@@ -141,8 +142,9 @@ export default function Boissons() {
       const { data: b } = await supabase.from('bars').select('id, name').eq('is_active', true).order('created_at')
       setBars(b || [])
       if (b && b.length) {
-        setBarId(b[0].id)
-        loadDrinks(b[0].id)
+        const id = chooseBar(b)
+        setBarId(id)
+        loadDrinks(id)
       }
     }
     init()
@@ -160,11 +162,6 @@ export default function Boissons() {
       setErr(e.message.includes('drinks_unique_name') ? tr('duplicate') : e.message)
     }
     setBusy(false)
-  }
-
-  function changeBar(id) {
-    setBarId(id)
-    loadDrinks(id)
   }
 
   function save(e) {
@@ -264,12 +261,7 @@ export default function Boissons() {
         {err && <div className="error-msg">{err}</div>}
         {locked && <div className="error-msg">{tr('locked')}</div>}
         {bars.length > 1 && (
-          <div className="field">
-            <label>{tr('bar')}</label>
-            <select value={barId} onChange={(e) => changeBar(e.target.value)}>
-              {bars.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-          </div>
+          <p style={{ margin: '0 0 12px', color: 'var(--muted)' }}>{tr('bar')} : <strong>{(bars.find((b) => b.id === barId) || {}).name}</strong></p>
         )}
         <div className="field">
           <input placeholder={tr('search')} value={q} onChange={(e) => setQ(e.target.value)} />
