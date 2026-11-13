@@ -3,12 +3,15 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 import { usePrefs } from '../components/Providers'
+import { chooseBar } from '../../lib/activebar'
 
 const L = {
   fr: {
     title: 'Bilan',
     bar: 'Bar',
     allBars: 'Tous les bars',
+    seeAll: 'Voir tous les bars',
+    seeOne: 'Voir seulement ce bar',
     from: 'Du',
     to: 'Au',
     today: 'Aujourd’hui',
@@ -57,6 +60,8 @@ const L = {
     title: 'Report',
     bar: 'Bar',
     allBars: 'All bars',
+    seeAll: 'See all bars',
+    seeOne: 'See this bar only',
     from: 'From',
     to: 'To',
     today: 'Today',
@@ -115,6 +120,7 @@ export default function Bilan() {
   const [locked, setLocked] = useState(false)
   const [bars, setBars] = useState([])
   const [barId, setBarId] = useState('')
+  const [activeId, setActiveId] = useState('')
   const [from, setFrom] = useState(dayStr(0).slice(0, 8) + '01')
   const [to, setTo] = useState(dayStr(0))
   const [data, setData] = useState(null)
@@ -137,6 +143,11 @@ export default function Bilan() {
       if (acc && acc[0] && !acc[0].is_active) setLocked(true)
       const { data: b } = await supabase.from('bars').select('id, name').eq('is_active', true).order('created_at')
       setBars(b || [])
+      if (b && b.length) {
+        const id = chooseBar(b)
+        setActiveId(id)
+        setBarId(id)
+      }
     }
     init()
   }, [router])
@@ -249,13 +260,12 @@ export default function Bilan() {
         <h1>{tr('title')}</h1>
         {err && <div className="error-msg">{err}</div>}
         {locked && <div className="error-msg">{tr('locked')}</div>}
-        <div className="field">
-          <label>{tr('bar')}</label>
-          <select value={barId} onChange={(e) => setBarId(e.target.value)}>
-            <option value="">{tr('allBars')}</option>
-            {bars.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
-        </div>
+        {bars.length > 1 && (
+          <>
+            <p style={{ margin: '0 0 12px', color: 'var(--muted)' }}>{tr('bar')} : <strong>{barName}</strong></p>
+            <button type="button" className="btn-outline" style={{ marginBottom: 12 }} onClick={() => setBarId(barId ? '' : activeId)}>{barId ? tr('seeAll') : tr('seeOne')}</button>
+          </>
+        )}
         <div className="field">
           <label>{tr('from')}</label>
           <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
