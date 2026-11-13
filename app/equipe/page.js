@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 import { usePrefs } from '../components/Providers'
+import AskBox from '../components/askbox'
+import { chooseBar } from '../../lib/activebar'
 
 const L = {
   fr: {
@@ -78,6 +80,8 @@ export default function Equipe() {
   const [staff, setStaff] = useState([])
   const [bars, setBars] = useState([])
   const [plan, setPlan] = useState(null)
+  const [activeId, setActiveId] = useState('')
+  const [pwdFor, setPwdFor] = useState(null)
   const [form, setForm] = useState(null)
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
@@ -104,6 +108,7 @@ export default function Equipe() {
     setStaff(s || [])
     const { data: b } = await supabase.from('bars').select('id, name').eq('is_active', true).order('created_at')
     setBars(b || [])
+    if (b && b.length) setActiveId(chooseBar(b))
     const { data: a } = await supabase.from('accounts').select('plan_type, plans(max_servers, max_accountants)').single()
     setPlan(a ? a.plans : null)
   }
@@ -145,14 +150,13 @@ export default function Equipe() {
   function create(e) {
     e.preventDefault()
     run(async () => {
-      await call({ action: 'create', ...form, bar_id: form.bar_id || (bars.length > 1 ? bars[0].id : '') })
+      await call({ action: 'create', ...form, bar_id: form.bar_id || (bars.length > 1 ? activeId : '') })
       setForm(null)
     }, 'created')
   }
 
-  function resetPwd(s) {
-    const v = window.prompt(tr('newPwd') + ' ' + (s.full_name || s.email) + ' :')
-    if (!v) return
+  function resetPwd(s, v) {
+    setPwdFor(null)
     run(() => call({ action: 'reset_password', user_id: s.id, password: v }), 'done')
   }
 
@@ -179,6 +183,7 @@ export default function Equipe() {
   const count = (role) => staff.filter((s) => s.role === role && s.is_active).length
   const quota = (role, max) => count(role) + ' / ' + (max === null || max === undefined ? tr('unlimited') : max)
   const barName = (id) => (bars.find((b) => b.id === id) || {}).name || tr('allBars')
+  const shown = bars.length > 1 ? staff.filter((s) => s.role !== 'server' || !s.bar_id || s.bar_id === activeId) : staff
 
   return (
     <div className="container">
@@ -191,6 +196,9 @@ export default function Equipe() {
           <p style={{ margin: '0 0 12px', color: 'var(--muted)', fontSize: 14 }}>
             {tr('quota')} : {tr('servers')} {quota('server', plan.max_servers)} · {tr('accountants')} {quota('accountant', plan.max_accountants)}
           </p>
+        )}
+        {bars.length > 1 && (
+          <p style={{ margin: '0 0 12px', color: 'var(--muted)' }}>{tr('barLabel')} : <strong>{barName(activeId)}</strong></p>
         )}
         {!form && <button className="btn-primary" disabled={locked} onClick={() => setForm(EMPTY)}>{tr('add')}</button>}
       </div>
@@ -213,7 +221,7 @@ export default function Equipe() {
             {form.role === 'server' && bars.length > 1 && (
               <div className="field">
                 <label>{tr('barLabel')}</label>
-                <select value={form.bar_id || bars[0].id} onChange={(e) => setForm({ ...form, bar_id: e.target.value })}>
+                <select value={form.bar_id || activeId} onChange={(e) => setForm({ ...form, bar_id: e.target.value })}>
                   {bars.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
@@ -224,9 +232,9 @@ export default function Equipe() {
         </div>
       )}
 
-      {staff.length === 0 && <p style={{ textAlign: 'center', color: 'var(--muted)', marginTop: 24 }}>{tr('empty')}</p>}
+      {shown.length === 0 && <p style={{ textAlign: 'center', color: 'var(--muted)', marginTop: 24 }}>{tr('empty')}</p>}
 
-      {staff.map((s) => (
+      {shown.map((s) => (
         <div className="card" key={s.id} style={{ marginTop: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
             <strong>{s.full_name || s.email}</strong>
@@ -243,9 +251,12 @@ export default function Equipe() {
             </div>
           )}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button className="btn-outline" disabled={busy} onClick={() => resetPwd(s)}>{tr('resetPwd')}</button>
+            <button className="btn-outline" disabled={busy} onClick={() => setPwdFor(s.id)}>{tr('resetPwd')}</button>
             <button className={s.is_active ? 'btn-danger' : 'btn-outline'} disabled={busy || locked} onClick={() => toggle(s)}>{s.is_active ? tr('deactivate') : tr('reactivate')}</button>
           </div>
+          {pwdFor === s.id && (
+            <AskBox type="password" label={tr('newPwd') + ' ' + (s.full_name || s.email) + ' :'} submitText={tr('resetPwd')} cancelText={tr('cancel')} busy={busy} onSubmit={(v) => resetPwd(s, v)} onCancel={() => setPwdFor(null)} />
+          )}
         </div>
       ))}
     </div>
