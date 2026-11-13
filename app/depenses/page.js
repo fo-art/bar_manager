@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 import { usePrefs } from '../components/Providers'
+import AskBox from '../components/askbox'
+import { chooseBar } from '../../lib/activebar'
 
 const L = {
   fr: {
@@ -90,6 +92,7 @@ export default function Depenses() {
   const [locked, setLocked] = useState(false)
   const [bars, setBars] = useState([])
   const [barId, setBarId] = useState('')
+  const [askId, setAskId] = useState('')
   const [from, setFrom] = useState(dayStr(0).slice(0, 8) + '01')
   const [to, setTo] = useState(dayStr(0))
   const [entries, setEntries] = useState([])
@@ -116,7 +119,7 @@ export default function Depenses() {
       if (acc && acc[0] && !acc[0].is_active) setLocked(true)
       const { data: b } = await supabase.from('bars').select('id, name').eq('is_active', true).order('created_at')
       setBars(b || [])
-      if (b && b.length) setBarId(b[0].id)
+      if (b && b.length) setBarId(chooseBar(b))
     }
     init()
   }, [router])
@@ -167,13 +170,12 @@ export default function Depenses() {
     setReload(reload + 1)
   }
 
-  async function voidEntry(en) {
-    const reason = window.prompt(tr('voidReason'))
-    if (!reason || !reason.trim()) return
+  async function voidEntry(en, reason) {
     setBusy(true)
     setErr('')
     const { error } = await supabase.rpc('void_finance_entry', { p_id: en.id, p_reason: reason })
     setBusy(false)
+    setAskId('')
     if (error) setErr(error.message)
     else setReload(reload + 1)
   }
@@ -192,12 +194,7 @@ export default function Depenses() {
         {msg && <div className="ok-msg">{msg}</div>}
         {locked && <div className="error-msg">{tr('locked')}</div>}
         {bars.length > 1 && (
-          <div className="field">
-            <label>{tr('bar')}</label>
-            <select value={barId} onChange={(e) => setBarId(e.target.value)}>
-              {bars.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-          </div>
+          <p style={{ margin: '0 0 12px', color: 'var(--muted)' }}>{tr('bar')} : <strong>{(bars.find((b) => b.id === barId) || {}).name}</strong></p>
         )}
         <div className="field">
           <label>{tr('from')}</label>
@@ -269,7 +266,10 @@ export default function Depenses() {
             </div>
             {en.note && <div style={{ fontSize: 13 }}>{en.note}</div>}
             {en.voided_at && en.void_reason && <div style={{ fontSize: 13, color: 'var(--err)' }}>{en.void_reason}</div>}
-            {isAdmin && !en.voided_at && <button className="btn-danger" style={{ marginTop: 6 }} disabled={busy || locked} onClick={() => voidEntry(en)}>{tr('voidBtn')}</button>}
+            {isAdmin && !en.voided_at && askId !== en.id && <button className="btn-danger" style={{ marginTop: 6 }} disabled={busy || locked} onClick={() => setAskId(en.id)}>{tr('voidBtn')}</button>}
+            {askId === en.id && (
+              <AskBox label={tr('voidReason')} submitText={tr('voidBtn')} cancelText={tr('cancel')} busy={busy} onSubmit={(r) => voidEntry(en, r)} onCancel={() => setAskId('')} />
+            )}
           </div>
         ))}
       </div>
