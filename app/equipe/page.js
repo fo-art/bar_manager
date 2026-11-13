@@ -36,8 +36,13 @@ const L = {
     locked: 'Accès verrouillé : contactez l’administrateur.',
     barLabel: 'Bar',
     allBars: 'Tous les bars',
-    noBar: 'Sans bar affecté',
-    assignHere: 'Affecter à ce bar',
+    edit: 'Modifier',
+    editTitle: 'Modifier l’employé',
+    save: 'Enregistrer',
+    del: 'Supprimer',
+    deleted: 'Employé supprimé (archivé)',
+    delReason: 'Motif de la suppression de',
+    delHelp: 'Le compte est archivé : il ne peut plus se connecter et libère sa place dans votre quota. Son historique (ventes, journal) est conservé.',
   },
   en: {
     title: 'Team',
@@ -68,8 +73,13 @@ const L = {
     locked: 'Access locked: contact the administrator.',
     barLabel: 'Bar',
     allBars: 'All bars',
-    noBar: 'No bar assigned',
-    assignHere: 'Assign to this bar',
+    edit: 'Edit',
+    editTitle: 'Edit employee',
+    save: 'Save',
+    del: 'Delete',
+    deleted: 'Employee deleted (archived)',
+    delReason: 'Reason for deleting',
+    delHelp: 'The account is archived: it can no longer log in and frees its slot in your quota. Its history (sales, log) is kept.',
   },
 }
 
@@ -85,7 +95,8 @@ export default function Equipe() {
   const [bars, setBars] = useState([])
   const [plan, setPlan] = useState(null)
   const [activeId, setActiveId] = useState('')
-  const [pwdFor, setPwdFor] = useState(null)
+  const [panel, setPanel] = useState(null)
+  const [edit, setEdit] = useState(null)
   const [form, setForm] = useState(null)
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
@@ -108,6 +119,7 @@ export default function Equipe() {
       .from('profiles')
       .select('id, full_name, email, role, is_active, bar_id')
       .in('role', ['server', 'accountant'])
+      .is('deleted_at', null)
       .order('created_at')
     setStaff(s || [])
     const { data: b } = await supabase.from('bars').select('id, name').eq('is_active', true).order('created_at')
@@ -160,8 +172,28 @@ export default function Equipe() {
   }
 
   function resetPwd(s, v) {
-    setPwdFor(null)
+    setPanel(null)
     run(() => call({ action: 'reset_password', user_id: s.id, password: v }), 'done')
+  }
+
+  function openEdit(s) {
+    setEdit({ full_name: s.full_name || '', email: s.email, bar_id: s.bar_id || '' })
+    setPanel({ kind: 'edit', id: s.id })
+  }
+
+  function saveEdit(e, s) {
+    e.preventDefault()
+    run(async () => {
+      await call({ action: 'update', user_id: s.id, full_name: edit.full_name, email: edit.email, bar_id: edit.bar_id })
+      setPanel(null)
+    }, 'done')
+  }
+
+  function remove(s, reason) {
+    run(async () => {
+      await call({ action: 'delete', user_id: s.id, reason })
+      setPanel(null)
+    }, 'deleted')
   }
 
   function toggle(s) {
@@ -236,14 +268,45 @@ export default function Equipe() {
             <strong>{s.full_name || s.email}</strong>
             <span className={'badge ' + (s.is_active ? 'badge-ok' : 'badge-err')}>{s.is_active ? tr('active') : tr('inactive')}</span>
           </div>
-          <p style={{ margin: '6px 0 12px', color: 'var(--muted)', fontSize: 14 }}>{s.email} · {tr('role_' + s.role)}{bars.length > 1 && ' · ' + (s.role === 'accountant' ? tr('allBars') : s.bar_id ? barName(s.bar_id) : tr('noBar'))}</p>
+          <p style={{ margin: '6px 0 12px', color: 'var(--muted)', fontSize: 14 }}>{s.email} · {tr('role_' + s.role)}{bars.length > 1 && ' · ' + (s.role === 'accountant' || !s.bar_id ? tr('allBars') : barName(s.bar_id))}</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {s.role === 'server' && bars.length > 1 && !s.bar_id && <button className="btn-outline" disabled={busy || locked} onClick={() => setBar(s, activeId)}>{tr('assignHere')}</button>}
-            <button className="btn-outline" disabled={busy} onClick={() => setPwdFor(s.id)}>{tr('resetPwd')}</button>
+            <button className="btn-outline" disabled={busy || locked} onClick={() => openEdit(s)}>{tr('edit')}</button>
+            <button className="btn-outline" disabled={busy} onClick={() => setPanel({ kind: 'pwd', id: s.id })}>{tr('resetPwd')}</button>
             <button className={s.is_active ? 'btn-danger' : 'btn-outline'} disabled={busy || locked} onClick={() => toggle(s)}>{s.is_active ? tr('deactivate') : tr('reactivate')}</button>
+            <button className="btn-danger" disabled={busy || locked} onClick={() => setPanel({ kind: 'del', id: s.id })}>{tr('del')}</button>
           </div>
-          {pwdFor === s.id && (
-            <AskBox type="password" label={tr('newPwd') + ' ' + (s.full_name || s.email) + ' :'} submitText={tr('resetPwd')} cancelText={tr('cancel')} busy={busy} onSubmit={(v) => resetPwd(s, v)} onCancel={() => setPwdFor(null)} />
+          {panel && panel.id === s.id && panel.kind === 'pwd' && (
+            <AskBox type="password" label={tr('newPwd') + ' ' + (s.full_name || s.email) + ' :'} submitText={tr('resetPwd')} cancelText={tr('cancel')} busy={busy} onSubmit={(v) => resetPwd(s, v)} onCancel={() => setPanel(null)} />
+          )}
+          {panel && panel.id === s.id && panel.kind === 'edit' && edit && (
+            <form onSubmit={(e) => saveEdit(e, s)} style={{ marginTop: 8, padding: 12, border: '1px solid var(--line)', borderRadius: 12, background: 'var(--hover)' }}>
+              <strong style={{ display: 'block', marginBottom: 10 }}>{tr('editTitle')}</strong>
+              <div className="field">
+                <label>{tr('name')}</label>
+                <input value={edit.full_name} onChange={(e) => setEdit({ ...edit, full_name: e.target.value })} required />
+              </div>
+              <div className="field">
+                <label>{tr('email')}</label>
+                <input type="email" value={edit.email} onChange={(e) => setEdit({ ...edit, email: e.target.value })} required />
+              </div>
+              {s.role === 'server' && bars.length > 1 && (
+                <div className="field">
+                  <label>{tr('barLabel')}</label>
+                  <select value={edit.bar_id} onChange={(e) => setEdit({ ...edit, bar_id: e.target.value })}>
+                    <option value="">{tr('allBars')}</option>
+                    {bars.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                </div>
+              )}
+              <button type="submit" className="btn-primary" disabled={busy}>{tr('save')}</button>
+              <button type="button" className="btn-outline" style={{ width: '100%', marginTop: 8 }} onClick={() => setPanel(null)}>{tr('cancel')}</button>
+            </form>
+          )}
+          {panel && panel.id === s.id && panel.kind === 'del' && (
+            <>
+              <p style={{ margin: '12px 0 0', color: 'var(--muted)', fontSize: 13 }}>{tr('delHelp')}</p>
+              <AskBox label={tr('delReason') + ' ' + (s.full_name || s.email) + ' :'} submitText={tr('del')} cancelText={tr('cancel')} busy={busy} onSubmit={(r) => remove(s, r)} onCancel={() => setPanel(null)} />
+            </>
           )}
         </div>
       ))}
