@@ -367,6 +367,7 @@ export default function Ventes() {
     const recap = o.order_items.map((i) => ({ qty: i.qty, d: drinks.find((x) => x.id === i.drink_id) })).filter((l) => l.d)
     const isOpen = o.status === 'open'
     const isBilling = billing && billing.id === o.id
+    const canCancel = isAdmin || (isServer && o.server_id === profile.id)
     return (
       <div style={{ marginTop: 12, padding: 12, border: '1px solid var(--line)', borderRadius: 12, background: 'var(--hover)' }}>
         {isOpen && (
@@ -402,7 +403,7 @@ export default function Ventes() {
         {isOpen && (
           <>
             <button className="btn-primary" disabled={busy || locked || recap.length === 0} onClick={() => act('order_validate', { p_order: o.id }, null)}>{tr('validateOrder')}</button>
-            {(isAdmin || recap.length === 0) && <button className="btn-danger" style={{ width: '100%', marginTop: 8 }} disabled={busy} onClick={() => cancelOrder(o)}>{tr('cancelOrder')}</button>}
+            {(canCancel || recap.length === 0) && <button className="btn-danger" style={{ width: '100%', marginTop: 8 }} disabled={busy} onClick={() => cancelOrder(o)}>{tr('cancelOrder')}</button>}
           </>
         )}
         {!isOpen && !isBilling && (
@@ -412,7 +413,7 @@ export default function Ventes() {
               <button className="btn-outline" style={{ flex: 1 }} disabled={busy} onClick={() => reopen(o)}>{tr('modify')}</button>
               <button className="btn-primary" style={{ flex: 1, marginTop: 0 }} disabled={busy || locked} onClick={() => setBilling({ id: o.id, method: 'cash', customer: o.label })}>{tr('billOrder')}</button>
             </div>
-            {isAdmin && <button className="btn-danger" style={{ width: '100%', marginTop: 8 }} disabled={busy} onClick={() => cancelOrder(o)}>{tr('cancelOrder')}</button>}
+            {canCancel && <button className="btn-danger" style={{ width: '100%', marginTop: 8 }} disabled={busy} onClick={() => cancelOrder(o)}>{tr('cancelOrder')}</button>}
           </>
         )}
         {isBilling && (
