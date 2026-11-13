@@ -198,7 +198,7 @@ export default function Ventes() {
     setStock(map)
     const { data: sl } = await supabase
       .from('sales')
-      .select('id, total, payment_method, customer_name, created_at, voided_at, void_reason, profiles!sales_server_id_fkey(full_name, email), sale_items(qty, unit_price, drinks(name))')
+      .select('id, server_id, total, payment_method, customer_name, created_at, voided_at, void_reason, profiles!sales_server_id_fkey(full_name, email), sale_items(qty, unit_price, drinks(name))')
       .eq('bar_id', id)
       .gte('created_at', dayStart())
       .order('created_at', { ascending: false })
@@ -355,6 +355,7 @@ export default function Ventes() {
 
   const isAdmin = profile.role === 'admin'
   const isServer = profile.role === 'server'
+  const canVoid = (s) => !s.voided_at && (isAdmin || (isServer && s.server_id === profile.id))
   const term = q.toLowerCase()
   const list = drinks.filter((d) => d.name.toLowerCase().includes(term))
   const lines = drinks.filter((d) => cart[d.id])
@@ -561,7 +562,7 @@ export default function Ventes() {
             {!s.voided_at && (
               <a className="btn-outline" style={{ display: 'inline-block', marginTop: 6, marginRight: 8, textDecoration: 'none', lineHeight: '24px' }} href={'/ticket?id=' + s.id} target="_blank" rel="noreferrer">🖨 {tr('printTicket')}</a>
             )}
-            {isAdmin && !s.voided_at && !(ask && ask.kind === 'sale' && ask.id === s.id) && <button className="btn-danger" style={{ marginTop: 6 }} disabled={busy} onClick={() => setAsk({ kind: 'sale', id: s.id })}>{tr('voidBtn')}</button>}
+            {canVoid(s) && !(ask && ask.kind === 'sale' && ask.id === s.id) && <button className="btn-danger" style={{ marginTop: 6 }} disabled={busy} onClick={() => setAsk({ kind: 'sale', id: s.id })}>{tr('voidBtn')}</button>}
             {ask && ask.kind === 'sale' && ask.id === s.id && (
               <AskBox label={tr('voidReason')} submitText={tr('voidBtn')} cancelText={tr('back')} busy={busy} onSubmit={(r) => voidSale(s, r)} onCancel={() => setAsk(null)} />
             )}
