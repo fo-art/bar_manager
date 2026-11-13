@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '../../../lib/serverAdmin'
 
 export const dynamic = 'force-dynamic'
 
 function fail(message, status = 400) {
   return NextResponse.json({ error: message }, { status })
+}
+
+function userClient(request) {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: request.headers.get('authorization') || '' } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
 }
 
 async function limitError(admin, accountId, role) {
@@ -37,8 +45,8 @@ async function pickBar(admin, accountId, wanted) {
 
 async function loadStaff(admin, accountId, userId) {
   const { data } = await admin
-    .from('profiles').select('id, role, is_active').eq('id', userId).eq('account_id', accountId).single()
-  if (!data || !['server', 'accountant'].includes(data.role)) return null
+    .from('profiles').select('id, role, is_active, email, deleted_at').eq('id', userId).eq('account_id', accountId).single()
+  if (!data || data.deleted_at || !['server', 'accountant'].includes(data.role)) return null
   return data
 }
 
@@ -107,6 +115,42 @@ export async function POST(request) {
     }
     const { error } = await admin.from('profiles').update({ bar_id: barId }).eq('id', target.id)
     if (error) return fail(error.message)
+    return NextResponse.json({ ok: true })
+  }
+
+  if (body.action === 'update') {
+    const fullName = String(body.full_name || '').trim()
+    const email = String(body.email || '').trim().toLowerCase()
+    if (!fullName || fullName.length > 80) return fail('Nom invalide')
+    if (!/^\S+@\S+\.\S+$/.test(email)) return fail('Identifiant e-mail invalide')
+    let barId = null
+    if (target.role === 'server' && body.bar_id) {
+      const pick = await pickBar(admin, profile.account_id, body.bar_id)
+      if (pick.error) return fail(pick.error)
+      barId = pick.barId
+    }
+    const emailChanged = email !== String(target.email).toLowerCase()
+    if (emailChanged) {
+      const pattern = email.replace(/[\\%_]/g, (c) => '\\' + c)
+      const { data: dup } = await admin.from('profiles').select('id').ilike('email', pattern).neq('id', target.id).limit(1)
+      if (dup && dup.length) return fail('Cet identifiant est déjà utilisé')
+      const { error } = await admin.auth.admin.updateUserById(target.id, { email, email_confirm: true })
+      if (error) return fail(error.message)
+    }
+    const { error: e2 } = await userClient(request).rpc('staff_update', { p_user: target.id, p_name: fullName, p_email: email, p_bar: barId })
+    if (e2) {
+      if (emailChanged) await admin.auth.admin.updateUserById(target.id, { email: target.email, email_confirm: true })
+      return fail(e2.message)
+    }
+    return NextResponse.json({ ok: true })
+  }
+
+  if (body.action === 'delete') {
+    const reason = String(body.reason || '').trim()
+    if (!reason) return fail('Motif obligatoire')
+    const { error } = await userClient(request).rpc('staff_delete', { p_user: target.id, p_reason: reason })
+    if (error) return fail(error.message)
+    await admin.auth.admin.updateUserById(target.id, { ban_duration: '876000h' })
     return NextResponse.json({ ok: true })
   }
 
