@@ -36,6 +36,8 @@ const L = {
     locked: 'Accès verrouillé : contactez l’administrateur.',
     barLabel: 'Bar',
     allBars: 'Tous les bars',
+    noBar: 'Sans bar affecté',
+    assignHere: 'Affecter à ce bar',
   },
   en: {
     title: 'Team',
@@ -66,6 +68,8 @@ const L = {
     locked: 'Access locked: contact the administrator.',
     barLabel: 'Bar',
     allBars: 'All bars',
+    noBar: 'No bar assigned',
+    assignHere: 'Assign to this bar',
   },
 }
 
@@ -150,7 +154,7 @@ export default function Equipe() {
   function create(e) {
     e.preventDefault()
     run(async () => {
-      await call({ action: 'create', ...form, bar_id: form.bar_id || (bars.length > 1 ? activeId : '') })
+      await call({ action: 'create', ...form, bar_id: form.role === 'server' ? activeId : '' })
       setForm(null)
     }, 'created')
   }
@@ -183,7 +187,7 @@ export default function Equipe() {
   const count = (role) => staff.filter((s) => s.role === role && s.is_active).length
   const quota = (role, max) => count(role) + ' / ' + (max === null || max === undefined ? tr('unlimited') : max)
   const barName = (id) => (bars.find((b) => b.id === id) || {}).name || tr('allBars')
-  const shown = bars.length > 1 ? staff.filter((s) => s.role !== 'server' || !s.bar_id || s.bar_id === activeId) : staff
+  const shown = bars.length > 1 ? staff.filter((s) => s.role === 'accountant' || !s.bar_id || s.bar_id === activeId) : staff
 
   return (
     <div className="container">
@@ -218,14 +222,6 @@ export default function Equipe() {
                 <option value="accountant">{tr('role_accountant')}</option>
               </select>
             </div>
-            {form.role === 'server' && bars.length > 1 && (
-              <div className="field">
-                <label>{tr('barLabel')}</label>
-                <select value={form.bar_id || activeId} onChange={(e) => setForm({ ...form, bar_id: e.target.value })}>
-                  {bars.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-              </div>
-            )}
             <button type="submit" className="btn-primary" disabled={busy}>{tr('create')}</button>
             <button type="button" className="btn-outline" style={{ width: '100%', marginTop: 8 }} onClick={() => setForm(null)}>{tr('cancel')}</button>
           </form>
@@ -240,17 +236,9 @@ export default function Equipe() {
             <strong>{s.full_name || s.email}</strong>
             <span className={'badge ' + (s.is_active ? 'badge-ok' : 'badge-err')}>{s.is_active ? tr('active') : tr('inactive')}</span>
           </div>
-          <p style={{ margin: '6px 0 12px', color: 'var(--muted)', fontSize: 14 }}>{s.email} · {tr('role_' + s.role)}{s.role === 'server' && ' · ' + barName(s.bar_id)}</p>
-          {s.role === 'server' && bars.length > 1 && (
-            <div className="field">
-              <label>{tr('barLabel')}</label>
-              <select value={s.bar_id || ''} disabled={busy} onChange={(e) => setBar(s, e.target.value)}>
-                <option value="">{tr('allBars')}</option>
-                {bars.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-            </div>
-          )}
+          <p style={{ margin: '6px 0 12px', color: 'var(--muted)', fontSize: 14 }}>{s.email} · {tr('role_' + s.role)}{bars.length > 1 && ' · ' + (s.role === 'accountant' ? tr('allBars') : s.bar_id ? barName(s.bar_id) : tr('noBar'))}</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {s.role === 'server' && bars.length > 1 && !s.bar_id && <button className="btn-outline" disabled={busy || locked} onClick={() => setBar(s, activeId)}>{tr('assignHere')}</button>}
             <button className="btn-outline" disabled={busy} onClick={() => setPwdFor(s.id)}>{tr('resetPwd')}</button>
             <button className={s.is_active ? 'btn-danger' : 'btn-outline'} disabled={busy || locked} onClick={() => toggle(s)}>{s.is_active ? tr('deactivate') : tr('reactivate')}</button>
           </div>
