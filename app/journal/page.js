@@ -21,6 +21,7 @@ const L = {
     g_drinks: 'Boissons et prix',
     g_cash: 'Clôtures de caisse',
     g_login: 'Connexions',
+    g_team: 'Équipe',
     more: 'Voir plus',
     empty: 'Aucune activité',
     locked: 'Accès verrouillé : contactez l’administrateur.',
@@ -67,6 +68,7 @@ const L = {
     g_drinks: 'Drinks and prices',
     g_cash: 'Cash closings',
     g_login: 'Logins',
+    g_team: 'Team',
     more: 'Show more',
     empty: 'No activity',
     locked: 'Access locked: contact the administrator.',
@@ -105,6 +107,7 @@ const GROUPS = {
   drinks: ['drink_created', 'drink_updated', 'price_changed', 'cost_changed', 'drink_suspended', 'drink_reactivated', 'drink_trashed', 'drink_restored', 'drink_deleted'],
   cash: ['cash_closed'],
   login: ['login'],
+  team: ['staff_created', 'staff_deactivated', 'staff_reactivated', 'staff_updated', 'staff_deleted'],
 }
 const fmt = (n) => Number(n).toLocaleString('fr-FR') + ' FCFA'
 
@@ -121,8 +124,8 @@ export default function Journal() {
   const router = useRouter()
   const { lang } = usePrefs()
     const EXTRA = {
-    fr: { a_staff_created: 'Employé ajouté', a_staff_deactivated: 'Employé désactivé', a_staff_reactivated: 'Employé réactivé', a_expense_added: 'Dépense enregistrée', a_rebate_added: 'Ristourne fournisseur', a_finance_voided: 'Écriture annulée' },
-    en: { a_staff_created: 'Employee added', a_staff_deactivated: 'Employee deactivated', a_staff_reactivated: 'Employee reactivated', a_expense_added: 'Expense recorded', a_rebate_added: 'Supplier rebate', a_finance_voided: 'Entry voided' },
+    fr: { a_staff_created: 'Employé ajouté', a_staff_deactivated: 'Employé désactivé', a_staff_reactivated: 'Employé réactivé', a_expense_added: 'Dépense enregistrée', a_rebate_added: 'Ristourne fournisseur', a_finance_voided: 'Écriture annulée', a_staff_updated: 'Employé modifié', a_staff_deleted: 'Employé supprimé', f_name: 'Nom', f_email: 'Identifiant', f_bar: 'Bar', f_allbars: 'Tous les bars' },
+    en: { a_staff_created: 'Employee added', a_staff_deactivated: 'Employee deactivated', a_staff_reactivated: 'Employee reactivated', a_expense_added: 'Expense recorded', a_rebate_added: 'Supplier rebate', a_finance_voided: 'Entry voided', a_staff_updated: 'Employee updated', a_staff_deleted: 'Employee deleted', f_name: 'Name', f_email: 'Login', f_bar: 'Bar', f_allbars: 'All bars' },
   }
   const tr = (k) => L[lang][k] || EXTRA[lang][k] || k
   const [profile, setProfile] = useState(null)
@@ -180,6 +183,8 @@ export default function Journal() {
     if (l.action === 'sale') return fmt(d.total) + ' · ' + tr('pay_' + d.method) + (d.customer ? ' · ' + d.customer : '')
     if (l.action === 'sale_voided') return fmt(d.total) + (d.reason ? ' · ' + d.reason : '')
     if (l.action === 'order_cancelled') return (d.label || '') + ((d.items || []).length ? ' · ' + d.items.map((i) => i.qty + ' × ' + i.drink).join(', ') : '') + (d.reason ? ' · ' + d.reason : '')
+    if (l.action === 'staff_deleted') return (d.name || '') + (d.reason ? ' · ' + d.reason : '')
+    if (l.action === 'staff_updated') return (d.name || '') + ' · ' + Object.entries(d.changes || {}).map(([k, v]) => tr('f_' + k) + ' : ' + (v.old || (k === 'bar' ? tr('f_allbars') : '-')) + ' → ' + (v.new || (k === 'bar' ? tr('f_allbars') : '-'))).join(' · ')
     if (l.action === 'credit_payment') return fmt(d.amount) + ' · ' + tr('pay_' + d.method) + (d.customer ? ' · ' + d.customer : '')
     if (l.action === 'cash_closed') return tr('expected') + ' ' + fmt(d.expected) + ' · ' + tr('counted') + ' ' + fmt(d.counted) + ' · ' + tr('diff') + ' ' + fmt(d.difference)
     if (l.action === 'price_changed' || l.action === 'cost_changed') return d.name + ' : ' + fmt(d.old) + ' → ' + fmt(d.new)
@@ -214,7 +219,7 @@ export default function Journal() {
         <div className="field">
           <label>{tr('group')}</label>
           <select value={group} onChange={(e) => { setGroup(e.target.value); setLimit(50) }}>
-            {['all', 'sales', 'stock', 'drinks', 'cash', 'login'].map((g) => <option key={g} value={g}>{tr('g_' + g)}</option>)}
+            {['all', 'sales', 'stock', 'drinks', 'cash', 'login', 'team'].map((g) => <option key={g} value={g}>{tr('g_' + g)}</option>)}
           </select>
         </div>
       </div>
