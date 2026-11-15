@@ -368,7 +368,7 @@ export default function Ventes() {
   const bar = (count, amount, id) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 12px', margin: '0 0 12px', borderRadius: 12, background: 'var(--hover)', border: '1px solid var(--line)' }}>
       <span style={{ fontWeight: 600 }}>{count} {tr('items')} · {fmt(amount)}</span>
-      {count > 0 && <button type="button" className="btn-primary" style={{ width: 'auto', marginTop: 0, padding: '6px 14px' }} onClick={() => jump(id)}>{tr('goDown')}</button>}
+      {count > 0 && <button type="button" className="btn-primary" style={{ width: 'auto', marginTop: 0, padding: '6px 14px', whiteSpace: 'nowrap' }} onClick={() => jump(id)}>{tr('goDown')}</button>}
     </div>
   )
 
@@ -538,8 +538,7 @@ export default function Ventes() {
         )}
       </Collapsible>
 
-      <div className="card" style={{ marginTop: 16 }}>
-        <h1>{tr('today')} · {fmt(dayTotal)}</h1>
+      <Collapsible title={tr('today') + ' · ' + fmt(dayTotal)} count={sales.length}>
         {sales.length === 0 && <p style={{ margin: 0, color: 'var(--muted)' }}>{tr('noSales')}</p>}
         {sales.map((s) => (
           <div key={s.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 14, opacity: s.voided_at ? 0.55 : 1 }}>
@@ -562,7 +561,7 @@ export default function Ventes() {
             {s.voided_at && s.void_reason && <div style={{ fontSize: 13, color: 'var(--err)' }}>{s.void_reason}</div>}
           </div>
         ))}
-      </div>
+      </Collapsible>
 
       <ReportPanel key={barId} kind="sales" barId={barId} barName={(bars.find((b) => b.id === barId) || {}).name} />
     </div>
