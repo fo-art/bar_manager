@@ -6,6 +6,7 @@ import { usePrefs } from '../components/Providers'
 import Collapsible from '../components/Collapsible'
 import ReportPanel from '../components/ReportPanel'
 import AskBox from '../components/askbox'
+import DrinkPicker from '../components/drinkpicker'
 import { chooseBar } from '../../lib/activebar'
 
 const L = {
@@ -65,6 +66,7 @@ const L = {
     emptyOrder: 'Aucune boisson dans cette commande',
     validatedHelp: 'Commande validée. Quand le client demande sa facture, appuyez sur Facturer. Pour ajouter ou changer une boisson, appuyez sur Modifier.',
     billed: 'Commande facturée',
+    goDown: 'Valider ↓',
   },
   en: {
     title: 'Sales',
@@ -122,6 +124,7 @@ const L = {
     emptyOrder: 'No drinks in this order',
     validatedHelp: 'Order validated. When the customer asks for the bill, press Bill. To add or change a drink, press Edit.',
     billed: 'Order billed',
+    goDown: 'Checkout ↓',
   },
 }
 
@@ -150,7 +153,6 @@ export default function Ventes() {
   const [cart, setCart] = useState({})
   const [method, setMethod] = useState('cash')
   const [customer, setCustomer] = useState('')
-  const [q, setQ] = useState('')
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
@@ -182,7 +184,7 @@ export default function Ventes() {
     if (!id) return
     const { data: dr, error } = await supabase
       .from('drinks')
-      .select('id, name, sell_price')
+      .select('id, name, sell_price, category')
       .eq('bar_id', id)
       .is('deleted_at', null)
       .eq('is_suspended', false)
@@ -272,7 +274,6 @@ export default function Ventes() {
     if (id && id !== true) {
       setNewLabel(null)
       setOpenId(id)
-      setQ('')
     }
   }
 
@@ -356,12 +357,20 @@ export default function Ventes() {
   const isAdmin = profile.role === 'admin'
   const isServer = profile.role === 'server'
   const canVoid = (s) => !s.voided_at && (isAdmin || (isServer && s.server_id === profile.id))
-  const term = q.toLowerCase()
-  const list = drinks.filter((d) => d.name.toLowerCase().includes(term))
   const lines = drinks.filter((d) => cart[d.id])
   const total = lines.reduce((sum, d) => sum + d.sell_price * cart[d.id], 0)
   const validSales = sales.filter((s) => !s.voided_at)
   const dayTotal = validSales.reduce((sum, s) => sum + s.total, 0)
+  const jump = (id) => {
+    const el = document.getElementById(id)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+  const bar = (count, amount, id) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 12px', margin: '0 0 12px', borderRadius: 12, background: 'var(--hover)', border: '1px solid var(--line)' }}>
+      <span style={{ fontWeight: 600 }}>{count} {tr('items')} · {fmt(amount)}</span>
+      {count > 0 && <button type="button" className="btn-primary" style={{ width: 'auto', marginTop: 0, padding: '6px 14px' }} onClick={() => jump(id)}>{tr('goDown')}</button>}
+    </div>
+  )
 
   function renderOrder(o) {
     const qtyOf = (id) => (o.order_items.find((i) => i.drink_id === id) || {}).qty || 0
@@ -372,27 +381,18 @@ export default function Ventes() {
     return (
       <div style={{ marginTop: 12, padding: 12, border: '1px solid var(--line)', borderRadius: 12, background: 'var(--hover)' }}>
         {isOpen && (
-          <>
-            <div className="field">
-              <input placeholder={tr('search')} value={q} onChange={(e) => setQ(e.target.value)} />
-            </div>
-            {list.map((d) => {
-              const n = qtyOf(d.id)
-              const room = Math.max(0, (stock[d.id] || 0) - (reserved[d.id] || 0) + n)
-              return (
-                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
-                  <div style={{ flex: 1 }}>
-                    <strong>{d.name}</strong>
-                    <div style={{ fontSize: 13, color: 'var(--muted)' }}>{fmt(d.sell_price)} · {room > 0 ? room + ' ' + tr('left') : tr('outStock')}</div>
-                  </div>
-                  <button className="btn-outline" style={{ minWidth: 40, padding: '8px 0' }} disabled={busy || n === 0} onClick={() => act('order_set_item', { p_order: o.id, p_drink: d.id, p_qty: n - 1 }, null)}>-</button>
-                  <strong style={{ minWidth: 20, textAlign: 'center' }}>{n}</strong>
-                  <button className="btn-outline" style={{ minWidth: 40, padding: '8px 0' }} disabled={busy || locked || n >= room} onClick={() => act('order_set_item', { p_order: o.id, p_drink: d.id, p_qty: n + 1 }, null)}>+</button>
-                </div>
-              )
-            })}
-          </>
+          <DrinkPicker
+            drinks={drinks}
+            qtyOf={qtyOf}
+            roomOf={(d) => Math.max(0, (stock[d.id] || 0) - (reserved[d.id] || 0) + qtyOf(d.id))}
+            onChange={(d, n) => act('order_set_item', { p_order: o.id, p_drink: d.id, p_qty: n }, null)}
+            busy={busy}
+            locked={locked}
+            fmt={fmt}
+            summary={bar(recap.reduce((sum, l) => sum + l.qty, 0), orderTotal(o), 'order-end-' + o.id)}
+          />
         )}
+        <div id={'order-end-' + o.id} />
         {recap.length === 0 && <p style={{ margin: '8px 0', color: 'var(--muted)' }}>{tr('emptyOrder')}</p>}
         {recap.map((l) => (
           <div key={l.d.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
@@ -492,31 +492,24 @@ export default function Ventes() {
             <div style={{ color: 'var(--muted)', fontSize: 13 }}>
               {o.order_items.reduce((s, i) => s + i.qty, 0)} {tr('items')} · {fmt(orderTotal(o))}{!isServer && o.profiles ? ' · ' + (o.profiles.full_name || o.profiles.email) : ''}
             </div>
-            <button className="btn-outline" style={{ marginTop: 8 }} onClick={() => { setOpenId(openId === o.id ? '' : o.id); setBilling(null); setQ('') }}>{openId === o.id ? tr('close') : tr('open')}</button>
+            <button className="btn-outline" style={{ marginTop: 8 }} onClick={() => { setOpenId(openId === o.id ? '' : o.id); setBilling(null) }}>{openId === o.id ? tr('close') : tr('open')}</button>
             {openId === o.id && renderOrder(o)}
           </div>
         ))}
       </div>
 
       <Collapsible title={tr('directSale')}>
-        <div className="field">
-          <input placeholder={tr('search')} value={q} onChange={(e) => setQ(e.target.value)} />
-        </div>
-        {list.map((d) => {
-          const left = Math.max(0, (stock[d.id] || 0) - (reserved[d.id] || 0))
-          const n = cart[d.id] || 0
-          return (
-            <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
-              <div style={{ flex: 1 }}>
-                <strong>{d.name}</strong>
-                <div style={{ fontSize: 13, color: 'var(--muted)' }}>{fmt(d.sell_price)} · {left > 0 ? left + ' ' + tr('left') : tr('outStock')}</div>
-              </div>
-              <button className="btn-outline" style={{ minWidth: 40, padding: '8px 0' }} disabled={n === 0} onClick={() => change(d, -1)}>-</button>
-              <strong style={{ minWidth: 20, textAlign: 'center' }}>{n}</strong>
-              <button className="btn-outline" style={{ minWidth: 40, padding: '8px 0' }} disabled={locked || n >= left} onClick={() => change(d, 1)}>+</button>
-            </div>
-          )
-        })}
+        <DrinkPicker
+          drinks={drinks}
+          qtyOf={(id) => cart[id] || 0}
+          roomOf={(d) => Math.max(0, (stock[d.id] || 0) - (reserved[d.id] || 0))}
+          onChange={(d, n) => change(d, n - (cart[d.id] || 0))}
+          busy={false}
+          locked={locked}
+          fmt={fmt}
+          summary={bar(lines.reduce((sum, d) => sum + cart[d.id], 0), total, 'cart-end')}
+        />
+        <div id="cart-end" />
         {lines.length === 0 && <p style={{ margin: '12px 0 0', color: 'var(--muted)' }}>{tr('cartEmpty')}</p>}
         {lines.map((d) => (
           <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
