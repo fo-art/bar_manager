@@ -72,21 +72,21 @@ export default function DrinkPicker({ drinks, qtyOf, roomOf, onChange, busy, loc
       )}
       {summary}
       {visible.length === 0 && <p style={{ margin: '8px 0', color: 'var(--muted)' }}>{t.none}</p>}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(136px, 1fr))', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(112px, 1fr))', gap: 8 }}>
         {visible.map(({ d, n, room }) => {
           const out = room <= 0
           return (
             <div
               key={d.id}
-              style={{ border: n > 0 ? '2px solid ' + GREEN : '1px solid var(--line)', background: n > 0 ? 'rgba(22,163,74,0.12)' : 'transparent', borderRadius: 12, padding: n > 0 ? 9 : 10, opacity: out ? 0.55 : 1 }}
+              style={{ border: n > 0 ? '2px solid ' + GREEN : '1px solid var(--line)', background: n > 0 ? 'rgba(22,163,74,0.12)' : 'transparent', borderRadius: 12, padding: n > 0 ? 7 : 8, opacity: out ? 0.55 : 1 }}
             >
               <div style={{ fontWeight: 700, lineHeight: 1.2, minHeight: 34, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>{d.name}</div>
               <div style={{ fontSize: 13, margin: '4px 0 0' }}>{fmt(d.sell_price)}</div>
               <div style={{ fontSize: 12, color: out ? 'var(--err)' : 'var(--muted)', margin: '0 0 8px' }}>{out ? t.out : room + ' ' + t.left}</div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                <button type="button" className="btn-outline" style={{ minWidth: 44, padding: '8px 0', marginTop: 0 }} disabled={busy || n === 0} onClick={() => onChange(d, n - 1)}>-</button>
-                <strong style={{ fontSize: 18 }}>{n}</strong>
-                <button type="button" className="btn-outline" style={{ minWidth: 44, padding: '8px 0', marginTop: 0 }} disabled={busy || locked || n >= room} onClick={() => onChange(d, n + 1)}>+</button>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                <button type="button" className="btn-outline" style={{ flex: 1, minWidth: 0, padding: '8px 0', marginTop: 0 }} disabled={busy || n === 0} onClick={() => onChange(d, n - 1)}>-</button>
+                <strong style={{ minWidth: 24, textAlign: 'center', fontSize: 18 }}>{n}</strong>
+                <button type="button" className="btn-outline" style={{ flex: 1, minWidth: 0, padding: '8px 0', marginTop: 0 }} disabled={busy || locked || n >= room} onClick={() => onChange(d, n + 1)}>+</button>
               </div>
             </div>
           )
