@@ -16,7 +16,7 @@ const L = {
     plan: 'Formule',
     activeBar: 'Bar à gérer',
     hint: 'Toutes les rubriques s’ouvrent sur le bar choisi.',
-    addBar: 'Ajouter un bar ou une boutique',
+    addBar: 'Ajouter un bar',
     barName: 'Nom du nouveau bar',
     create: 'Créer',
     cancel: 'Annuler',
@@ -33,7 +33,7 @@ const L = {
     plan: 'Plan',
     activeBar: 'Bar to manage',
     hint: 'Every section opens on the selected bar.',
-    addBar: 'Add a bar or shop',
+    addBar: 'Add a bar',
     barName: 'New bar name',
     create: 'Create',
     cancel: 'Cancel',
@@ -50,8 +50,9 @@ const L = {
 
 export default function Dashboard() {
   const router = useRouter()
-  const { t, lang } = usePrefs()
-  const m = L[lang]
+  const { t, lang, v } = usePrefs()
+  const raw = L[lang]
+  const m = Object.fromEntries(Object.entries(raw).map(([k, val]) => [k, v(val)]))
   const [profile, setProfile] = useState(null)
   const [access, setAccess] = useState(null)
   const [bars, setBars] = useState([])
