@@ -47,7 +47,7 @@ const ITEMS = [
 
 export default function AppShell({ children }) {
   const pathname = usePathname()
-  const { lang } = usePrefs()
+  const { lang, v } = usePrefs()
   const [role, setRole] = useState('')
   const [open, setOpen] = useState(false)
 
@@ -72,7 +72,7 @@ export default function AppShell({ children }) {
   const link = (i, cls) => (
     <Link key={i.href} href={i.href} className={cls + (isActive(i) ? ' active' : '')}>
       <Icon name={i.icon} />
-      <span>{i[lang]}</span>
+      <span>{v(i[lang])}</span>
     </Link>
   )
 
