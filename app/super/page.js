@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 
-const EMPTY = { email: '', password: '', full_name: '', account_name: '', bar_name: '', plan_type: 1 }
+const EMPTY = { email: '', password: '', full_name: '', account_name: '', bar_name: '', plan_type: 1, business_type: 'bar' }
 
 function daysLeft(a) {
   const ends = [new Date(a.trial_ends_at).getTime()]
@@ -164,7 +164,14 @@ export default function SuperAdmin() {
           {field('E-mail de connexion', 'email', 'email')}
                     {field('Mot de passe (8 caractères minimum)', 'password', 'password')}
           {field('Nom du compte (établissement)', 'account_name')}
-          {field('Nom du premier bar', 'bar_name')}
+          <div className="field">
+            <label>Type d'établissement</label>
+            <select value={form.business_type} onChange={(e) => setForm({ ...form, business_type: e.target.value })}>
+              <option value="bar">Bar</option>
+              <option value="shop">Boutique / commerce</option>
+            </select>
+          </div>
+          {field(form.business_type === 'shop' ? 'Nom de la première boutique' : 'Nom du premier bar', 'bar_name')}
           <div className="field">
             <label>Type d'abonnement</label>
             <select value={form.plan_type} onChange={(e) => setForm({ ...form, plan_type: e.target.value })}>
@@ -185,7 +192,8 @@ export default function SuperAdmin() {
           <div className="card" key={a.id} style={{ marginTop: 16 }}>
             <h1>{a.name}</h1>
             <p style={{ margin: '0 0 8px' }}>
-              {owner ? owner.email : '-'} · Type {a.plan_type}{' '}
+              {owner ? owner.email : '-'} · Type {a.plan_type} ·{' '}
+              <span className="badge">{a.business_type === 'shop' ? 'Boutique' : 'Bar'}</span>{' '}
               <span className={'badge ' + (a.status === 'suspended' ? 'badge-err' : left > 0 ? 'badge-ok' : 'badge-warn')}>
                 {a.status === 'suspended' ? 'Suspendu' : left > 0 ? left + ' j restants' : 'Expiré'}
               </span>
