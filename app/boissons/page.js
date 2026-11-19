@@ -35,6 +35,9 @@ const L = {
     bar: 'Bar',
     locked: 'Accès verrouillé : contactez l’administrateur.',
     duplicate: 'Cette boisson existe déjà dans ce bar.',
+    duplicateSku: 'Ce code article existe déjà dans ce bar.',
+    categoryPh: 'Ex. : Quincaillerie, Alimentation, Outils...',
+    sku: 'Code article (optionnel)',
     cat_beer: 'Bière',
     cat_soft: 'Boisson gazeuse',
     cat_liquor: 'Spiritueux',
@@ -72,6 +75,9 @@ const L = {
     bar: 'Bar',
     locked: 'Access locked: contact the administrator.',
     duplicate: 'This drink already exists in this bar.',
+    duplicateSku: 'This item code already exists in this bar.',
+    categoryPh: 'E.g. Hardware, Groceries, Tools...',
+    sku: 'Item code (optional)',
     cat_beer: 'Beer',
     cat_soft: 'Soft drink',
     cat_liquor: 'Spirits',
@@ -83,7 +89,12 @@ const L = {
 }
 
 const CATS = ['beer', 'soft', 'liquor', 'wine', 'water', 'juice', 'other']
-const EMPTY = { name: '', category: 'beer', buy_price: '', sell_price: '', units_per_case: 12, alert_threshold: 6 }
+
+function emptyForm(isShop) {
+  return isShop
+    ? { name: '', category: '', sku: '', buy_price: '', sell_price: '', units_per_case: 1, alert_threshold: 3 }
+    : { name: '', category: 'beer', buy_price: '', sell_price: '', units_per_case: 12, alert_threshold: 6 }
+}
 const fmt = (n) => Number(n).toLocaleString('fr-FR') + ' FCFA'
 
 function buyOf(d) {
@@ -94,8 +105,9 @@ function buyOf(d) {
 
 export default function Boissons() {
   const router = useRouter()
-  const { lang } = usePrefs()
-  const tr = (k) => L[lang][k]
+  const { lang, v, biz } = usePrefs()
+  const tr = (k) => v(L[lang][k])
+  const isShop = biz === 'shop'
   const [profile, setProfile] = useState(null)
   const [locked, setLocked] = useState(false)
   const [bars, setBars] = useState([])
@@ -159,7 +171,11 @@ export default function Boissons() {
       setMsg(tr(okKey))
       await loadDrinks(barId)
     } catch (e) {
-      setErr(e.message.includes('drinks_unique_name') ? tr('duplicate') : e.message)
+      setErr(
+        e.message.includes('drinks_sku_bar_unique') ? tr('duplicateSku')
+        : e.message.includes('drinks_unique_name') ? tr('duplicate')
+        : e.message
+      )
     }
     setBusy(false)
   }
@@ -169,11 +185,12 @@ export default function Boissons() {
     run(async () => {
       const row = {
         name: form.name.trim(),
-        category: form.category,
+        category: isShop ? form.category.trim() : form.category,
         sell_price: Number(form.sell_price),
         units_per_case: Number(form.units_per_case),
         alert_threshold: Number(form.alert_threshold),
       }
+      if (isShop) row.sku = form.sku ? form.sku.trim() || null : null
       let id = editId
       if (editId) {
         const { error } = await supabase.from('drinks').update(row).eq('id', editId)
@@ -193,7 +210,7 @@ export default function Boissons() {
   function openEdit(d) {
     const buy = buyOf(d)
     setEditId(d.id)
-    setForm({ name: d.name, category: d.category, buy_price: buy == null ? 0 : buy, sell_price: d.sell_price, units_per_case: d.units_per_case, alert_threshold: d.alert_threshold })
+    setForm({ name: d.name, category: d.category, sku: d.sku || '', buy_price: buy == null ? 0 : buy, sell_price: d.sell_price, units_per_case: d.units_per_case, alert_threshold: d.alert_threshold })
     setTimeout(() => {
       const el = document.getElementById('inline-form')
       if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
@@ -231,10 +248,15 @@ export default function Boissons() {
         {inp('name', tr('name'))}
         <div className="field">
           <label>{tr('category')}</label>
-          <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-            {CATS.map((c) => <option key={c} value={c}>{tr('cat_' + c)}</option>)}
-          </select>
+          {isShop ? (
+            <input value={form.category} placeholder={tr('categoryPh')} onChange={(e) => setForm({ ...form, category: e.target.value })} required />
+          ) : (
+            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+              {CATS.map((c) => <option key={c} value={c}>{tr('cat_' + c)}</option>)}
+            </select>
+          )}
         </div>
+        {isShop && inp('sku', tr('sku'))}
         {inp('buy_price', tr('buy'), 'number')}
         {inp('sell_price', tr('sell'), 'number')}
         {inp('units_per_case', tr('perCase'), 'number')}
@@ -276,7 +298,7 @@ export default function Boissons() {
           </div>
         )}
         {canEdit && !locked && !form && (
-          <button className="btn-primary" onClick={() => { setEditId(null); setForm(EMPTY) }}>{tr('add')}</button>
+          <button className="btn-primary" onClick={() => { setEditId(null); setForm(emptyForm(isShop)) }}>{tr('add')}</button>
         )}
       </div>
 
@@ -295,7 +317,7 @@ export default function Boissons() {
           <div className="card" key={d.id} style={{ marginTop: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
               <strong>{d.name}</strong>
-              <span className="badge">{tr('cat_' + d.category)}</span>
+              <span className="badge">{isShop ? d.category : tr('cat_' + d.category)}</span>
             </div>
             <p style={{ margin: '6px 0 12px', color: 'var(--muted)', fontSize: 14 }}>
               {fmt(d.sell_price)}
