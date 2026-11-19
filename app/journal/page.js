@@ -51,6 +51,7 @@ const L = {
     a_stock_gift: 'Offert',
     a_stock_adjustment: 'Inventaire / ajustement',
     a_order_cancelled: 'Commande annulée',
+    a_support_access: 'Accès support (Super Admin)',
   },
   en: {
     title: 'Activity log',
@@ -98,6 +99,7 @@ const L = {
     a_stock_gift: 'Gift',
     a_stock_adjustment: 'Count / adjustment',
     a_order_cancelled: 'Order cancelled',
+    a_support_access: 'Support access (Super Admin)',
   },
 }
 
@@ -106,7 +108,7 @@ const GROUPS = {
   stock: ['stock_purchase', 'stock_loss', 'stock_gift', 'stock_adjustment'],
   drinks: ['drink_created', 'drink_updated', 'price_changed', 'cost_changed', 'drink_suspended', 'drink_reactivated', 'drink_trashed', 'drink_restored', 'drink_deleted'],
   cash: ['cash_closed'],
-  login: ['login'],
+  login: ['login', 'support_access'],
   team: ['staff_created', 'staff_deactivated', 'staff_reactivated', 'staff_updated', 'staff_deleted'],
 }
 const fmt = (n) => Number(n).toLocaleString('fr-FR') + ' FCFA'
@@ -185,6 +187,7 @@ export default function Journal() {
     if (l.action === 'order_cancelled') return (d.label || '') + ((d.items || []).length ? ' · ' + d.items.map((i) => i.qty + ' × ' + i.drink).join(', ') : '') + (d.reason ? ' · ' + d.reason : '')
     if (l.action === 'staff_deleted') return (d.name || '') + (d.reason ? ' · ' + d.reason : '')
     if (l.action === 'staff_updated') return (d.name || '') + ' · ' + Object.entries(d.changes || {}).map(([k, v]) => tr('f_' + k) + ' : ' + (v.old || (k === 'bar' ? tr('f_allbars') : '-')) + ' → ' + (v.new || (k === 'bar' ? tr('f_allbars') : '-'))).join(' · ')
+    if (l.action === 'support_access') return d.target || ''
     if (l.action === 'credit_payment') return fmt(d.amount) + ' · ' + tr('pay_' + d.method) + (d.customer ? ' · ' + d.customer : '')
     if (l.action === 'cash_closed') return tr('expected') + ' ' + fmt(d.expected) + ' · ' + tr('counted') + ' ' + fmt(d.counted) + ' · ' + tr('diff') + ' ' + fmt(d.difference)
     if (l.action === 'price_changed' || l.action === 'cost_changed') return d.name + ' : ' + fmt(d.old) + ' → ' + fmt(d.new)
