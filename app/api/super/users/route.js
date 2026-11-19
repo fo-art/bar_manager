@@ -52,6 +52,7 @@ export async function POST(request) {
 
   if (body.action === 'create') {
     const { email, password, full_name, account_name, plan_type, bar_name } = body
+    const businessType = body.business_type === 'shop' ? 'shop' : 'bar'
     if (!email || !password || password.length < 8 || !account_name || !bar_name) {
       return fail('Champs obligatoires manquants (mot de passe : 8 caractères minimum)')
     }
@@ -62,7 +63,7 @@ export async function POST(request) {
     const userId = created.data.user.id
 
     const acc = await admin.from('accounts')
-      .insert({ name: account_name, plan_type: plan_type || 1 }).select().single()
+      .insert({ name: account_name, plan_type: plan_type || 1, business_type: businessType }).select().single()
     if (acc.error) {
       await admin.auth.admin.deleteUser(userId)
       return fail(acc.error.message)
