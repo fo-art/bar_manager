@@ -124,12 +124,12 @@ function since(p) {
 
 export default function Journal() {
   const router = useRouter()
-  const { lang } = usePrefs()
+  const { lang, v } = usePrefs
     const EXTRA = {
     fr: { a_staff_created: 'Employé ajouté', a_staff_deactivated: 'Employé désactivé', a_staff_reactivated: 'Employé réactivé', a_expense_added: 'Dépense enregistrée', a_rebate_added: 'Ristourne fournisseur', a_finance_voided: 'Écriture annulée', a_staff_updated: 'Employé modifié', a_staff_deleted: 'Employé supprimé', f_name: 'Nom', f_email: 'Identifiant', f_bar: 'Bar', f_allbars: 'Tous les bars' },
     en: { a_staff_created: 'Employee added', a_staff_deactivated: 'Employee deactivated', a_staff_reactivated: 'Employee reactivated', a_expense_added: 'Expense recorded', a_rebate_added: 'Supplier rebate', a_finance_voided: 'Entry voided', a_staff_updated: 'Employee updated', a_staff_deleted: 'Employee deleted', f_name: 'Name', f_email: 'Login', f_bar: 'Bar', f_allbars: 'All bars' },
   }
-  const tr = (k) => L[lang][k] || EXTRA[lang][k] || k
+  const tr = (k) => v(L[lang][k] || EXTRA[lang][k] || k)
   const [profile, setProfile] = useState(null)
   const [locked, setLocked] = useState(false)
   const [users, setUsers] = useState([])
