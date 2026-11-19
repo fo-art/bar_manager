@@ -87,8 +87,8 @@ const EMPTY = { full_name: '', email: '', password: '', role: 'server', bar_id: 
 
 export default function Equipe() {
   const router = useRouter()
-  const { lang } = usePrefs()
-  const tr = (k) => L[lang][k]
+  const { lang, v } = usePrefs()
+  const tr = (k) => v(L[lang][k])
   const [profile, setProfile] = useState(null)
   const [locked, setLocked] = useState(false)
   const [staff, setStaff] = useState([])
