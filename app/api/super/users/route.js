@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { requireSuperAdmin } from '../../../../lib/serverAdmin'
 
 export const dynamic = 'force-dynamic'
 
 function fail(message, status = 400) {
   return NextResponse.json({ error: message }, { status })
+}
+
+function userClient(request) {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: request.headers.get('authorization') || '' } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
 }
 
 export async function POST(request) {
@@ -71,6 +79,22 @@ export async function POST(request) {
       return fail(err.message)
     }
     return NextResponse.json({ ok: true, account_id: acc.data.id })
+  }
+
+  if (body.action === 'impersonate') {
+    if (!body.user_id) return fail('Compte introuvable')
+    const { data: target, error: e1 } = await admin
+      .from('profiles').select('id, email, account_id, role, is_active').eq('id', body.user_id).single()
+    if (e1 || !target) return fail('Compte introuvable')
+    if (target.role !== 'admin') return fail('Seul un compte administrateur peut être ouvert')
+    if (!target.is_active) return fail('Ce compte est désactivé')
+    const { data: link, error: e2 } = await admin.auth.admin.generateLink({ type: 'magiclink', email: target.email })
+    if (e2) return fail(e2.message)
+    const hashed = link && link.properties && link.properties.hashed_token
+    if (!hashed) return fail('Lien de connexion indisponible')
+    const { error: e3 } = await userClient(request).rpc('log_support_access', { p_account: target.account_id, p_target: target.email })
+    if (e3) return fail(e3.message)
+    return NextResponse.json({ ok: true, token_hash: hashed })
   }
 
   return fail('Action inconnue')
