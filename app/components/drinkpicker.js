@@ -38,8 +38,10 @@ function Chip({ on, onClick, children }) {
 }
 
 export default function DrinkPicker({ drinks, qtyOf, roomOf, onChange, busy, locked, fmt, summary }) {
-  const { lang } = usePrefs()
+  const { lang, v, biz } = usePrefs()
   const t = T[lang]
+  const tr = (k) => v(t[k])
+  const isShop = biz === 'shop'
   const [q, setQ] = useState('')
   const [cat, setCat] = useState('all')
   const [showOut, setShowOut] = useState(false)
@@ -61,17 +63,17 @@ export default function DrinkPicker({ drinks, qtyOf, roomOf, onChange, busy, loc
   return (
     <div>
       <div className="field">
-        <input placeholder={t.search} value={q} onChange={(e) => setQ(e.target.value)} />
+        <input placeholder={tr('search')} value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       {(cats.length > 1 || outCount > 0) && (
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, marginBottom: 4 }}>
-          {cats.length > 1 && <Chip on={cat === 'all'} onClick={() => setCat('all')}>{t.all}</Chip>}
-          {cats.length > 1 && cats.map((c) => <Chip key={c} on={cat === c} onClick={() => setCat(c)}>{t.cats[c] || c}</Chip>)}
-          {outCount > 0 && <Chip on={showOut} onClick={() => setShowOut(!showOut)}>{t.showOut} ({outCount})</Chip>}
+          {cats.length > 1 && <Chip on={cat === 'all'} onClick={() => setCat('all')}>{tr('all')}</Chip>}
+          {cats.length > 1 && cats.map((c) => <Chip key={c} on={cat === c} onClick={() => setCat(c)}>{isShop ? c : (t.cats[c] || c)}</Chip>)}
+          {outCount > 0 && <Chip on={showOut} onClick={() => setShowOut(!showOut)}>{tr('showOut')} ({outCount})</Chip>}
         </div>
       )}
       {summary}
-      {visible.length === 0 && <p style={{ margin: '8px 0', color: 'var(--muted)' }}>{t.none}</p>}
+      {visible.length === 0 && <p style={{ margin: '8px 0', color: 'var(--muted)' }}>{tr('none')}</p>}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(112px, 1fr))', gap: 8 }}>
         {visible.map(({ d, n, room }) => {
           const out = room <= 0
@@ -82,7 +84,7 @@ export default function DrinkPicker({ drinks, qtyOf, roomOf, onChange, busy, loc
             >
               <div style={{ fontWeight: 700, lineHeight: 1.2, minHeight: 34, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>{d.name}</div>
               <div style={{ fontSize: 13, margin: '4px 0 0' }}>{fmt(d.sell_price)}</div>
-              <div style={{ fontSize: 12, color: out ? 'var(--err)' : 'var(--muted)', margin: '0 0 8px' }}>{out ? t.out : room + ' ' + t.left}</div>
+              <div style={{ fontSize: 12, color: out ? 'var(--err)' : 'var(--muted)', margin: '0 0 8px' }}>{out ? tr('out') : room + ' ' + tr('left')}</div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
                 <button type="button" className="btn-outline" style={{ flex: 1, minWidth: 0, padding: '8px 0', marginTop: 0 }} disabled={busy || n === 0} onClick={() => onChange(d, n - 1)}>-</button>
                 <strong style={{ minWidth: 24, textAlign: 'center', fontSize: 18 }}>{n}</strong>
