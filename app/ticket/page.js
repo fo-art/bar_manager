@@ -65,8 +65,8 @@ const CSS = `
 const fmt = (n) => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' FCFA'
 
 export default function Ticket() {
-  const { lang } = usePrefs()
-  const tr = (k) => L[lang][k]
+  const { lang, v } = usePrefs()
+  const tr = (k) => v(L[lang][k])
   const [sale, setSale] = useState(null)
   const [qr, setQr] = useState('')
   const [err, setErr] = useState(false)
