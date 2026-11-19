@@ -1,6 +1,8 @@
 'use client'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { dictionary } from '../../lib/i18n'
+import { makeVocab } from '../../lib/vocab'
+import { supabase } from '../../lib/supabaseClient'
 
 const PrefsContext = createContext(null)
 
@@ -11,6 +13,7 @@ export function usePrefs() {
 export default function Providers({ children }) {
   const [lang, setLang] = useState('fr')
   const [theme, setTheme] = useState('light')
+  const [biz, setBiz] = useState(null)
 
   useEffect(() => {
     try {
@@ -30,10 +33,22 @@ export default function Providers({ children }) {
     } catch (e) {}
   }, [lang, theme])
 
+  async function loadBiz() {
+    const { data } = await supabase.rpc('my_business')
+    setBiz(data || null)
+  }
+
+  useEffect(() => {
+    loadBiz()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => loadBiz())
+    return () => subscription.unsubscribe()
+  }, [])
+
   const t = (key) => dictionary[lang][key] || key
+  const v = makeVocab(biz, lang)
 
   return (
-    <PrefsContext.Provider value={{ lang, setLang, theme, setTheme, t }}>
+    <PrefsContext.Provider value={{ lang, setLang, theme, setTheme, t, biz, v }}>
       {children}
     </PrefsContext.Provider>
   )
