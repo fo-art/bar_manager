@@ -141,8 +141,8 @@ const dt = (s, lang) => new Date(s).toLocaleString(lang === 'fr' ? 'fr-FR' : 'en
 
 export default function Ventes() {
   const router = useRouter()
-  const { lang } = usePrefs()
-  const tr = (k) => L[lang][k]
+  const { lang, v } = usePrefs()
+  const tr = (k) => v(L[lang][k])
   const [profile, setProfile] = useState(null)
   const [locked, setLocked] = useState(false)
   const [bars, setBars] = useState([])
