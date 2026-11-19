@@ -86,8 +86,8 @@ const EMPTY = { kind: 'expense', category: 'rent', label: '', amount: '', entry_
 
 export default function Depenses() {
   const router = useRouter()
-  const { lang } = usePrefs()
-  const tr = (k) => L[lang][k]
+  const { lang, v } = usePrefs()
+  const tr = (k) => v(L[lang][k])
   const [profile, setProfile] = useState(null)
   const [locked, setLocked] = useState(false)
   const [bars, setBars] = useState([])
