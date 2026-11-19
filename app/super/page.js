@@ -118,6 +118,25 @@ export default function SuperAdmin() {
     run(() => call({ action: 'reset_password', user_id: owner.id, password: v }), 'Mot de passe modifié')
   }
 
+  async function openAccount(owner) {
+    if (!owner) return
+    if (!window.confirm('Ouvrir le compte de ' + (owner.full_name || owner.email) + ' ?')) return
+    setBusy(true)
+    setErr('')
+    setMsg('')
+    try {
+      const json = await call({ action: 'impersonate', user_id: owner.id })
+      const { data: { session } } = await supabase.auth.getSession()
+      sessionStorage.setItem('superSession', JSON.stringify({ access_token: session.access_token, refresh_token: session.refresh_token }))
+      const { error } = await supabase.auth.verifyOtp({ token_hash: json.token_hash, type: 'magiclink' })
+      if (error) throw new Error(error.message)
+      router.push('/dashboard')
+    } catch (e) {
+      setErr(e.message)
+      setBusy(false)
+    }
+  }
+
   async function logout() {
     await supabase.auth.signOut()
     router.push('/')
@@ -175,6 +194,7 @@ export default function SuperAdmin() {
               Bars : {(a.bars || []).map((b) => b.name).join(', ') || '-'}
             </p>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button className="btn-outline" disabled={busy || !owner} onClick={() => openAccount(owner)}>Ouvrir</button>
               <button className="btn-outline" disabled={busy} onClick={() => extend(a)}>Prolonger</button>
               <button className="btn-outline" disabled={busy} onClick={() => addBar(a)}>+ Bar</button>
               <button className="btn-outline" disabled={busy || !owner} onClick={() => resetPassword(owner)}>Mot de passe</button>
