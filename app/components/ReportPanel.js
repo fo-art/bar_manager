@@ -15,7 +15,7 @@ const TITLE = {
 const dayStr = (offset) => new Date(Date.now() + 3600000 - offset * 86400000).toISOString().slice(0, 10)
 
 export default function ReportPanel({ kind, barId, barName }) {
-  const { lang } = usePrefs()
+  const { lang, v } = usePrefs()
   const fr = lang === 'fr'
   const [from, setFrom] = useState(dayStr(0).slice(0, 8) + '01')
   const [to, setTo] = useState(dayStr(0))
@@ -38,7 +38,7 @@ export default function ReportPanel({ kind, barId, barName }) {
       setErr(error.message)
       return
     }
-    setSpec(buildSpec(kind, data, lang, { from, to, barName }))
+    setSpec(buildSpec(kind, data, lang, { from, to, barName, v }))
   }
 
   async function download() {
