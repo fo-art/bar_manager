@@ -22,6 +22,7 @@ export default function SuperAdmin() {
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   const [delBar, setDelBar] = useState(null)
+  const [delAccount, setDelAccount] = useState(null)
 
   async function call(payload) {
     const { data: { session } } = await supabase.auth.getSession()
@@ -126,6 +127,21 @@ export default function SuperAdmin() {
       if (error) throw new Error(error.message)
       setMsg('Bar supprimé définitivement')
       setDelBar(null)
+      await load()
+    } catch (e) {
+      setErr(e.message)
+    }
+    setBusy(false)
+  }
+
+  async function confirmDeleteAccount(a, typed) {
+    setBusy(true)
+    setErr('')
+    setMsg('')
+    try {
+      await call({ action: 'delete_account', account_id: a.id, confirm_name: typed })
+      setMsg('Compte supprimé définitivement')
+      setDelAccount(null)
       await load()
     } catch (e) {
       setErr(e.message)
@@ -257,7 +273,18 @@ export default function SuperAdmin() {
               <button className="btn-danger" disabled={busy} onClick={() => toggleStatus(a)}>
                 {a.status === 'active' ? 'Suspendre' : 'Réactiver'}
               </button>
+              <button className="btn-danger" disabled={busy} onClick={() => setDelAccount(delAccount && delAccount.id === a.id ? null : a)}>Supprimer le compte</button>
             </div>
+            {delAccount && delAccount.id === a.id && (
+              <AskBox
+                label={'Tape exactement « ' + a.name + ' » pour confirmer la suppression définitive de tout le compte (bars, ventes, stock, équipe) :'}
+                submitText="Supprimer définitivement"
+                cancelText="Annuler"
+                busy={busy}
+                onSubmit={(v) => confirmDeleteAccount(a, v)}
+                onCancel={() => setDelAccount(null)}
+              />
+            )}
           </div>
         )
       })}
