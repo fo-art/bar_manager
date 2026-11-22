@@ -212,6 +212,8 @@ export default function SuperAdmin() {
         return (
           <div className="card" key={a.id} style={{ marginTop: 16 }}>
             <h1>{a.name}</h1>
+            {msg && <div className="ok-msg">{msg}</div>}
+            {err && <div className="error-msg">{err}</div>}
             <p style={{ margin: '0 0 8px' }}>
               {owner ? owner.email : '-'} · Type {a.plan_type} ·{' '}
               <span className="badge">{a.business_type === 'shop' ? 'Boutique' : 'Bar'}</span>{' '}
