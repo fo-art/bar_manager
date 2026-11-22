@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
+import AskBox from '../components/askbox'
 
 const EMPTY = { email: '', password: '', full_name: '', account_name: '', bar_name: '', plan_type: 1, business_type: 'bar' }
 
@@ -20,6 +21,7 @@ export default function SuperAdmin() {
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [delBar, setDelBar] = useState(null)
 
   async function call(payload) {
     const { data: { session } } = await supabase.auth.getSession()
@@ -112,6 +114,25 @@ export default function SuperAdmin() {
     }, 'Bar ajouté')
   }
 
+  async function confirmDeleteBar(bar, typed) {
+    setBusy(true)
+    setErr('')
+    setMsg('')
+    try {
+      const { data: ls } = await supabase.from('listings').select('photos').eq('bar_id', bar.id)
+      const photos = (ls || []).flatMap((l) => l.photos || [])
+      if (photos.length) await supabase.storage.from('listings').remove(photos)
+      const { error } = await supabase.rpc('super_delete_bar', { p_bar: bar.id, p_confirm_name: typed })
+      if (error) throw new Error(error.message)
+      setMsg('Bar supprimé définitivement')
+      setDelBar(null)
+      await load()
+    } catch (e) {
+      setErr(e.message)
+    }
+    setBusy(false)
+  }
+
   function resetPassword(owner) {
     const v = window.prompt('Nouveau mot de passe pour ' + owner.email + ' (8 caractères minimum) :')
     if (!v) return
@@ -198,9 +219,28 @@ export default function SuperAdmin() {
                 {a.status === 'suspended' ? 'Suspendu' : left > 0 ? left + ' j restants' : 'Expiré'}
               </span>
             </p>
-            <p style={{ margin: '0 0 12px', color: 'var(--muted)', fontSize: 14 }}>
-              Bars : {(a.bars || []).map((b) => b.name).join(', ') || '-'}
-            </p>
+            <div style={{ margin: '0 0 12px' }}>
+              <div style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 4 }}>Bars :</div>
+              {(a.bars || []).length === 0 && <p style={{ margin: 0, color: 'var(--muted)', fontSize: 14 }}>-</p>}
+              {(a.bars || []).map((b) => (
+                <div key={b.id}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+                    <span style={{ fontSize: 14 }}>{b.name}</span>
+                    <button className="btn-danger" style={{ marginTop: 0, padding: '4px 10px', fontSize: 13 }} disabled={busy} onClick={() => setDelBar(delBar && delBar.id === b.id ? null : b)}>Supprimer</button>
+                  </div>
+                  {delBar && delBar.id === b.id && (
+                    <AskBox
+                      label={'Tape exactement « ' + b.name + ' » pour confirmer la suppression définitive (ventes, stock et historique inclus) :'}
+                      submitText="Supprimer définitivement"
+                      cancelText="Annuler"
+                      busy={busy}
+                      onSubmit={(v) => confirmDeleteBar(b, v)}
+                      onCancel={() => setDelBar(null)}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button className="btn-outline" disabled={busy || !owner} onClick={() => openAccount(owner)}>Ouvrir</button>
               <button className="btn-outline" disabled={busy} onClick={() => extend(a)}>Prolonger</button>
