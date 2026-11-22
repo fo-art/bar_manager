@@ -23,6 +23,8 @@ export default function SuperAdmin() {
   const [busy, setBusy] = useState(false)
   const [delBar, setDelBar] = useState(null)
   const [delAccount, setDelAccount] = useState(null)
+  const [delBarErr, setDelBarErr] = useState('')
+  const [delAccountErr, setDelAccountErr] = useState('')
 
   async function call(payload) {
     const { data: { session } } = await supabase.auth.getSession()
@@ -117,34 +119,30 @@ export default function SuperAdmin() {
 
   async function confirmDeleteBar(bar, typed) {
     setBusy(true)
-    setErr('')
-    setMsg('')
+    setDelBarErr('')
     try {
       const { data: ls } = await supabase.from('listings').select('photos').eq('bar_id', bar.id)
       const photos = (ls || []).flatMap((l) => l.photos || [])
       if (photos.length) await supabase.storage.from('listings').remove(photos)
       const { error } = await supabase.rpc('super_delete_bar', { p_bar: bar.id, p_confirm_name: typed })
       if (error) throw new Error(error.message)
-      setMsg('Bar supprimé définitivement')
       setDelBar(null)
       await load()
     } catch (e) {
-      setErr(e.message)
+      setDelBarErr(e.message)
     }
     setBusy(false)
   }
 
   async function confirmDeleteAccount(a, typed) {
     setBusy(true)
-    setErr('')
-    setMsg('')
+    setDelAccountErr('')
     try {
       await call({ action: 'delete_account', account_id: a.id, confirm_name: typed })
-      setMsg('Compte supprimé définitivement')
       setDelAccount(null)
       await load()
     } catch (e) {
-      setErr(e.message)
+      setDelAccountErr(e.message)
     }
     setBusy(false)
   }
@@ -228,8 +226,6 @@ export default function SuperAdmin() {
         return (
           <div className="card" key={a.id} style={{ marginTop: 16 }}>
             <h1>{a.name}</h1>
-            {msg && <div className="ok-msg">{msg}</div>}
-            {err && <div className="error-msg">{err}</div>}
             <p style={{ margin: '0 0 8px' }}>
               {owner ? owner.email : '-'} · Type {a.plan_type} ·{' '}
               <span className="badge">{a.business_type === 'shop' ? 'Boutique' : 'Bar'}</span>{' '}
@@ -244,17 +240,20 @@ export default function SuperAdmin() {
                 <div key={b.id}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '4px 0' }}>
                     <span style={{ fontSize: 14 }}>{b.name}</span>
-                    <button className="btn-danger" style={{ marginTop: 0, padding: '4px 10px', fontSize: 13 }} disabled={busy} onClick={() => setDelBar(delBar && delBar.id === b.id ? null : b)}>Supprimer</button>
+                    <button className="btn-danger" style={{ marginTop: 0, padding: '4px 10px', fontSize: 13 }} disabled={busy} onClick={() => { setDelBarErr(''); setDelBar(delBar && delBar.id === b.id ? null : b) }}>Supprimer</button>
                   </div>
                   {delBar && delBar.id === b.id && (
-                    <AskBox
-                      label={'Tape exactement « ' + b.name + ' » pour confirmer la suppression définitive (ventes, stock et historique inclus) :'}
-                      submitText="Supprimer définitivement"
-                      cancelText="Annuler"
-                      busy={busy}
-                      onSubmit={(v) => confirmDeleteBar(b, v)}
-                      onCancel={() => setDelBar(null)}
-                    />
+                    <>
+                      {delBarErr && <div className="error-msg">{delBarErr}</div>}
+                      <AskBox
+                        label={'Tape exactement « ' + b.name + ' » pour confirmer la suppression définitive (ventes, stock et historique inclus) :'}
+                        submitText="Supprimer définitivement"
+                        cancelText="Annuler"
+                        busy={busy}
+                        onSubmit={(v) => confirmDeleteBar(b, v)}
+                        onCancel={() => { setDelBar(null); setDelBarErr('') }}
+                      />
+                    </>
                   )}
                 </div>
               ))}
@@ -273,17 +272,20 @@ export default function SuperAdmin() {
               <button className="btn-danger" disabled={busy} onClick={() => toggleStatus(a)}>
                 {a.status === 'active' ? 'Suspendre' : 'Réactiver'}
               </button>
-              <button className="btn-danger" disabled={busy} onClick={() => setDelAccount(delAccount && delAccount.id === a.id ? null : a)}>Supprimer le compte</button>
+              <button className="btn-danger" disabled={busy} onClick={() => { setDelAccountErr(''); setDelAccount(delAccount && delAccount.id === a.id ? null : a) }}>Supprimer le compte</button>
             </div>
             {delAccount && delAccount.id === a.id && (
-              <AskBox
-                label={'Tape exactement « ' + a.name + ' » pour confirmer la suppression définitive de tout le compte (bars, ventes, stock, équipe) :'}
-                submitText="Supprimer définitivement"
-                cancelText="Annuler"
-                busy={busy}
-                onSubmit={(v) => confirmDeleteAccount(a, v)}
-                onCancel={() => setDelAccount(null)}
-              />
+              <>
+                {delAccountErr && <div className="error-msg">{delAccountErr}</div>}
+                <AskBox
+                  label={'Tape exactement « ' + a.name + ' » pour confirmer la suppression définitive de tout le compte (bars, ventes, stock, équipe) :'}
+                  submitText="Supprimer définitivement"
+                  cancelText="Annuler"
+                  busy={busy}
+                  onSubmit={(v) => confirmDeleteAccount(a, v)}
+                  onCancel={() => { setDelAccount(null); setDelAccountErr('') }}
+                />
+              </>
             )}
           </div>
         )
