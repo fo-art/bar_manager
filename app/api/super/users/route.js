@@ -98,5 +98,25 @@ export async function POST(request) {
     return NextResponse.json({ ok: true, token_hash: hashed })
   }
 
+  if (body.action === 'delete_account') {
+    if (!body.account_id) return fail('Compte introuvable')
+    const confirmName = String(body.confirm_name || '').trim()
+    if (!confirmName) return fail('Confirmation manquante')
+    const { data: barsList } = await admin.from('bars').select('id').eq('account_id', body.account_id)
+    const barIds = (barsList || []).map((b) => b.id)
+    let photos = []
+    if (barIds.length) {
+      const { data: ls } = await admin.from('listings').select('photos').in('bar_id', barIds)
+      photos = (ls || []).flatMap((l) => l.photos || [])
+    }
+    if (photos.length) await admin.storage.from('listings').remove(photos)
+    const { data: ids, error } = await userClient(request).rpc('super_delete_account', { p_account: body.account_id, p_confirm_name: confirmName })
+    if (error) return fail(error.message)
+    for (const uid of ids || []) {
+      await admin.auth.admin.deleteUser(uid)
+    }
+    return NextResponse.json({ ok: true })
+  }
+
   return fail('Action inconnue')
 }
